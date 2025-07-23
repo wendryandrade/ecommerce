@@ -4,6 +4,7 @@ using Ecommerce.Infrastructure.Persistence.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Ecommerce.Infrastructure.Persistence.Context.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250723011007_ConfigureOrderRelationships")]
+    partial class ConfigureOrderRelationships
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -164,7 +167,8 @@ namespace Ecommerce.Infrastructure.Persistence.Context.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ShippingAddressId");
+                    b.HasIndex("ShippingAddressId")
+                        .IsUnique();
 
                     b.ToTable("Orders");
                 });
@@ -314,8 +318,8 @@ namespace Ecommerce.Infrastructure.Persistence.Context.Migrations
             modelBuilder.Entity("Ecommerce.Domain.Entities.Order", b =>
                 {
                     b.HasOne("Ecommerce.Domain.Entities.Address", "ShippingAddress")
-                        .WithMany()
-                        .HasForeignKey("ShippingAddressId")
+                        .WithOne()
+                        .HasForeignKey("Ecommerce.Domain.Entities.Order", "ShippingAddressId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

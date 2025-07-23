@@ -38,5 +38,9 @@
             if (quantity <= 0) RemoveItem(productId);
             else item.Quantity = quantity;
         }
+        public void Clear()
+        {
+            CartItems.Clear();
+        }
     }
 }
