@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // --- Início da Configuração dos Serviços ---
 
-// 1. Adicionar serviços ao container.
+// Adicionar serviços ao container.
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -15,10 +15,10 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.WriteIndented = true;
     });
 
-// 2. Adicionar a configuração do Swagger
-//    AddEndpointsApiExplorer é necessário para a exploração de metadados da API.
+// Adicionar a configuração do Swagger
+// AddEndpointsApiExplorer é necessário para a exploração de metadados da API.
 builder.Services.AddEndpointsApiExplorer();
-//    AddSwaggerGen gera a documentação JSON que o Swagger UI usa.
+// AddSwaggerGen gera a documentação JSON que o Swagger UI usa.
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddMediatR(cfg =>
@@ -27,8 +27,10 @@ builder.Services.AddMediatR(cfg =>
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 
-// 3. Configurar o DbContext para usar SQL Server
+// Configurar o DbContext para usar SQL Server
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -38,7 +40,7 @@ var app = builder.Build();
 
 // --- Início da Configuração do Pipeline HTTP ---
 
-// 6. Ativar o Swagger e o Swagger UI apenas em ambiente de desenvolvimento
+// Ativar o Swagger e o Swagger UI apenas em ambiente de desenvolvimento
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
