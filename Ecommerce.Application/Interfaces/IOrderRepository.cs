@@ -7,6 +7,6 @@ namespace Ecommerce.Application.Interfaces
         Task AddAsync(Order order, CancellationToken cancellationToken);
         Task UpdateAsync(Order order); 
         Task<Order?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
-        Task<List<Order>> GetByCustomerIdAsync(Guid customerId, CancellationToken cancellationToken);
+        Task<List<Order>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken);
     }
 }

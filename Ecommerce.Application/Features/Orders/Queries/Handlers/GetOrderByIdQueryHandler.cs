@@ -27,7 +27,7 @@ namespace Ecommerce.Application.Features.Orders.Queries.Handlers
             var orderDto = new OrderDto
             {
                 Id = order.Id,
-                CustomerId = order.CustomerId,
+                UserId = order.UserId,
                 OrderDate = order.OrderDate,
                 TotalAmount = order.TotalAmount,
                 Status = order.Status,

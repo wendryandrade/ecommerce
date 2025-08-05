@@ -24,7 +24,7 @@ namespace Ecommerce.Application.Features.Orders.Handlers
 
         public async Task<Guid> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
         {
-            var cart = await _cartRepository.GetByCustomerIdAsync(request.CustomerId);
+            var cart = await _cartRepository.GetByUserIdAsync(request.UserId);
             if (cart == null || !cart.CartItems.Any())
             {
                 throw new InvalidOperationException("O carrinho está vazio.");
@@ -59,7 +59,7 @@ namespace Ecommerce.Application.Features.Orders.Handlers
             var order = new Order
             {
                 Id = Guid.NewGuid(),
-                CustomerId = request.CustomerId,
+                UserId = request.UserId,
                 OrderDate = DateTime.UtcNow,
                 TotalAmount = totalAmount,
                 Status = OrderStatus.Pending,

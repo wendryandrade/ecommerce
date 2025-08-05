@@ -4,24 +4,24 @@ using Ecommerce.Application.Features.Carts.DTOs;
 
 namespace Ecommerce.Application.Features.Carts.Queries.Handlers
 {
-    public class GetCartByCustomerIdQueryHandler : IRequestHandler<GetCartByCustomerIdQuery, CartDto>
+    public class GetCartByUserIdQueryHandler : IRequestHandler<GetCartByUserIdQuery, CartDto>
     {
         private readonly ICartRepository _cartRepository;
 
-        public GetCartByCustomerIdQueryHandler(ICartRepository cartRepository)
+        public GetCartByUserIdQueryHandler(ICartRepository cartRepository)
         {
             _cartRepository = cartRepository;
         }
 
-        public async Task<CartDto> Handle(GetCartByCustomerIdQuery request, CancellationToken cancellationToken)
+        public async Task<CartDto> Handle(GetCartByUserIdQuery request, CancellationToken cancellationToken)
         {
-            var cart = await _cartRepository.GetByCustomerIdAsync(request.CustomerId);
+            var cart = await _cartRepository.GetByUserIdAsync(request.UserId);
             if (cart == null)
                 return null;
 
             var cartDto = new CartDto
             {
-                CustomerId = cart.CustomerId,
+                UserId = cart.UserId,
                 Items = cart.CartItems.Select(ci => new CartItemDto
                 {
                     ProductId = ci.ProductId,

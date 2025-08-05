@@ -36,10 +36,10 @@ namespace Ecommerce.Infrastructure.Persistence.Repositories
                 .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
         }
 
-        public async Task<List<Order>> GetByCustomerIdAsync(Guid customerId, CancellationToken cancellationToken)
+        public async Task<List<Order>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken)
         {
             return await _context.Orders
-                .Where(o => o.CustomerId == customerId)
+                .Where(o => o.UserId == userId)
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Product)
                 .Include(o => o.Payment)

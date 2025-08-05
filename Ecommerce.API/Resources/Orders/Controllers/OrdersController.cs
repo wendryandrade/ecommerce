@@ -6,12 +6,14 @@ using Ecommerce.Application.Features.Orders.Commands;
 using Ecommerce.Application.Features.Orders.DTOs;
 using Ecommerce.Application.Features.Orders.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ecommerce.API.Resources.Orders.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class OrdersController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -31,7 +33,7 @@ namespace Ecommerce.API.Resources.Orders.Controllers
             {
                 var command = new CreateOrderCommand
                 {
-                    CustomerId = request.CustomerId,
+                    UserId = request.UserId,
                     ShippingAddress = new OrderAddressDto
                     {
                         Street = request.ShippingAddress.Street,
@@ -54,11 +56,11 @@ namespace Ecommerce.API.Resources.Orders.Controllers
         }
 
         // Endpoint para buscar todos os pedidos de um cliente
-        [HttpGet("customer/{customerId}")]
+        [HttpGet("user/{userId}")]
         [ProducesResponseType(typeof(List<OrderResponse>), 200)]
-        public async Task<ActionResult<List<OrderResponse>>> GetOrdersByCustomerId(Guid customerId)
+        public async Task<ActionResult<List<OrderResponse>>> GetOrdersByUserId(Guid userId)
         {
-            var query = new GetOrdersByCustomerIdQuery(customerId);
+            var query = new GetOrdersByUserIdQuery(userId);
             var orderDtos = await _mediator.Send(query);
             var response = orderDtos.Select(dto => MapToOrderResponse(dto)).ToList();
             return Ok(response);

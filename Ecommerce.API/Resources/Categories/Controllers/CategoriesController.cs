@@ -3,6 +3,7 @@ using Ecommerce.API.Resources.Categories.DTOs.Responses;
 using Ecommerce.Application.Features.Categories.Commands;
 using Ecommerce.Application.Features.Categories.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ecommerce.API.Resources.Categories.Controllers
@@ -51,16 +52,24 @@ namespace Ecommerce.API.Resources.Categories.Controllers
             return Ok(category);
         }
 
-        // POST: api/categories
+        // POST: api/categories - Protegido para Admin
         [HttpPost]
-        public async Task<IActionResult> Create(CreateCategoryCommand command)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create([FromBody] CreateCategoryRequest request)
         {
-            var id = await _mediator.Send(command);
-            return CreatedAtAction(nameof(GetById), new { id }, command);
-        }
+            var command = new CreateCategoryCommand
+            {
+                Name = request.Name,
+                Description = request.Description
+            };
 
-        // PUT: api/categories/{id}
+            var id = await _mediator.Send(command);
+            return CreatedAtAction(nameof(GetById), new { id = id }, new { id = id });
+        }
+        
+        // PUT: api/categories/{id} - Protegido para Admin
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(Guid id, [FromBody] CategoryRequest request)
         {
             var command = new UpdateCategoryCommand
@@ -74,8 +83,9 @@ namespace Ecommerce.API.Resources.Categories.Controllers
             return result ? NoContent() : NotFound();
         }
 
-        // DELETE: api/categories/{id}
+        // DELETE: api/categories/{id} - Protegido para Admin
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             try

@@ -3,7 +3,7 @@
     public class Cart
     {
         public Guid Id { get; set; }
-        public Guid CustomerId { get; set; }
+        public Guid UserId { get; set; }
         public List<CartItem> CartItems { get; set; } = new();
 
         public void AddItem(Product product, int quantity)

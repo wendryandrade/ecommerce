@@ -32,9 +32,6 @@ namespace Ecommerce.Infrastructure.Persistence.Context.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid?>("CustomerId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("PostalCode")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -47,9 +44,12 @@ namespace Ecommerce.Infrastructure.Persistence.Context.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("CustomerId");
+                    b.HasIndex("UserId");
 
                     b.ToTable("Addresses");
                 });
@@ -60,7 +60,7 @@ namespace Ecommerce.Infrastructure.Persistence.Context.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("CustomerId")
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
@@ -114,40 +114,10 @@ namespace Ecommerce.Infrastructure.Persistence.Context.Migrations
                     b.ToTable("Categories");
                 });
 
-            modelBuilder.Entity("Ecommerce.Domain.Entities.Customer", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Customers");
-                });
-
             modelBuilder.Entity("Ecommerce.Domain.Entities.Order", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CustomerId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("OrderDate")
@@ -161,6 +131,9 @@ namespace Ecommerce.Infrastructure.Persistence.Context.Migrations
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -287,11 +260,42 @@ namespace Ecommerce.Infrastructure.Persistence.Context.Migrations
                     b.ToTable("Shippings");
                 });
 
+            modelBuilder.Entity("Ecommerce.Domain.Entities.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Users");
+                });
+
             modelBuilder.Entity("Ecommerce.Domain.Entities.Address", b =>
                 {
-                    b.HasOne("Ecommerce.Domain.Entities.Customer", null)
+                    b.HasOne("Ecommerce.Domain.Entities.User", null)
                         .WithMany("Addresses")
-                        .HasForeignKey("CustomerId");
+                        .HasForeignKey("UserId");
                 });
 
             modelBuilder.Entity("Ecommerce.Domain.Entities.CartItem", b =>
@@ -378,11 +382,6 @@ namespace Ecommerce.Infrastructure.Persistence.Context.Migrations
                     b.Navigation("Products");
                 });
 
-            modelBuilder.Entity("Ecommerce.Domain.Entities.Customer", b =>
-                {
-                    b.Navigation("Addresses");
-                });
-
             modelBuilder.Entity("Ecommerce.Domain.Entities.Order", b =>
                 {
                     b.Navigation("OrderItems");
@@ -392,6 +391,11 @@ namespace Ecommerce.Infrastructure.Persistence.Context.Migrations
 
                     b.Navigation("Shipping")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Ecommerce.Domain.Entities.User", b =>
+                {
+                    b.Navigation("Addresses");
                 });
 #pragma warning restore 612, 618
         }
