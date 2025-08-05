@@ -14,13 +14,13 @@ namespace Ecommerce.Infrastructure.Persistence.Repositories
             _context = context;
         }
 
-        public async Task<Cart> GetByCustomerIdAsync(Guid customerId)
+        public async Task<Cart> GetByUserIdAsync(Guid userId)
         {
             return await _context.Carts
                 .Include(c => c.CartItems)
                 .ThenInclude(ci => ci.Product)
                 .AsTracking()
-                .FirstOrDefaultAsync(c => c.CustomerId == customerId);
+                .FirstOrDefaultAsync(c => c.UserId == userId);
         }
 
         public async Task AddAsync(Cart cart)
@@ -50,9 +50,9 @@ namespace Ecommerce.Infrastructure.Persistence.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(Guid customerId, Guid productId)
+        public async Task DeleteAsync(Guid userId, Guid productId)
         {
-            var cart = await GetByCustomerIdAsync(customerId);
+            var cart = await GetByUserIdAsync(userId);
             if (cart == null) return;
 
             cart.RemoveItem(productId);

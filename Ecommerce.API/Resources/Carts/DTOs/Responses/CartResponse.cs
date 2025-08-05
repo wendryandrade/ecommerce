@@ -2,7 +2,7 @@
 {
     public class CartResponse
     {
-        public Guid CustomerId { get; set; }
+        public Guid UserId { get; set; }
         public List<CartItemResponse> Items { get; set; } = new();
         public decimal TotalAmount => Items.Sum(i => i.Total);
     }

@@ -6,23 +6,23 @@ using MediatR;
 
 namespace Ecommerce.Application.Features.Orders.Queries.Handlers
 {
-    public class GetOrdersByCustomerIdQueryHandler : IRequestHandler<GetOrdersByCustomerIdQuery, List<OrderDto>>
+    public class GetOrdersByUserIdQueryHandler : IRequestHandler<GetOrdersByUserIdQuery, List<OrderDto>>
     {
         private readonly IOrderRepository _orderRepository;
 
-        public GetOrdersByCustomerIdQueryHandler(IOrderRepository orderRepository)
+        public GetOrdersByUserIdQueryHandler(IOrderRepository orderRepository)
         {
             _orderRepository = orderRepository;
         }
 
-        public async Task<List<OrderDto>> Handle(GetOrdersByCustomerIdQuery request, CancellationToken cancellationToken)
+        public async Task<List<OrderDto>> Handle(GetOrdersByUserIdQuery request, CancellationToken cancellationToken)
         {
-            var orders = await _orderRepository.GetByCustomerIdAsync(request.CustomerId, cancellationToken);
+            var orders = await _orderRepository.GetByUserIdAsync(request.UserId, cancellationToken);
 
             var orderDtos = orders.Select(order => new OrderDto
             {
                 Id = order.Id,
-                CustomerId = order.CustomerId,
+                UserId = order.UserId,
                 OrderDate = order.OrderDate,
                 TotalAmount = order.TotalAmount,
                 Status = order.Status,

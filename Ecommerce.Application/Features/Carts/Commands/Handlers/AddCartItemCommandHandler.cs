@@ -25,13 +25,13 @@ namespace Ecommerce.Application.Features.Carts.Commands.Handlers
             if (product.StockQuantity < request.Quantity)
                 return false;
 
-            var cart = await _cartRepository.GetByCustomerIdAsync(request.CustomerId);
+            var cart = await _cartRepository.GetByUserIdAsync(request.UserId);
             if (cart == null)
             {
                 cart = new Cart
                 {
                     Id = Guid.NewGuid(),
-                    CustomerId = request.CustomerId
+                    UserId = request.UserId
                 };
                 cart.AddItem(product, request.Quantity);
                 await _cartRepository.AddAsync(cart);

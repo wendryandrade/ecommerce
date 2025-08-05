@@ -3,6 +3,7 @@ using Ecommerce.API.Resources.Products.DTOs.Responses;
 using Ecommerce.Application.Products.Commands;
 using Ecommerce.Application.Products.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ecommerce.API.Controllers
@@ -57,8 +58,9 @@ namespace Ecommerce.API.Controllers
             return Ok(response);
         }
 
-        // POST api/products
+        // POST api/products - Protegido para Admin
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] CreateProductRequest request)
         {
             var command = new CreateProductCommand
@@ -74,8 +76,9 @@ namespace Ecommerce.API.Controllers
             return CreatedAtAction(nameof(GetById), new { id = productId }, null);
         }
 
-        // PUT api/products/{id}
+        // PUT api/products/{id} - Protegido para Admin
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductRequest request)
         {
             if (id != request.Id)
@@ -107,8 +110,9 @@ namespace Ecommerce.API.Controllers
             return Ok(response);
         }
 
-        // DELETE api/products/{id}
+        // DELETE api/products/{id} - Protegido para Admin
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var success = await _mediator.Send(new DeleteProductCommand(id));

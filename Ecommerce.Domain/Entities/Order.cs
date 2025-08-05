@@ -5,7 +5,7 @@ namespace Ecommerce.Domain.Entities
     public class Order
     {
         public Guid Id { get; set; }
-        public Guid CustomerId { get; set; }
+        public Guid UserId { get; set; }
         public Guid ShippingAddressId { get; set; }
         public Address ShippingAddress { get; set; }
         public DateTime OrderDate { get; set; }

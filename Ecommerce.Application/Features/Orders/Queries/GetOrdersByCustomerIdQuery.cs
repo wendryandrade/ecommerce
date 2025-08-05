@@ -3,13 +3,13 @@ using MediatR;
 
 namespace Ecommerce.Application.Features.Orders.Queries
 {
-    public class GetOrdersByCustomerIdQuery : IRequest<List<OrderDto>>
+    public class GetOrdersByUserIdQuery : IRequest<List<OrderDto>>
     {
-        public Guid CustomerId { get; set; }
+        public Guid UserId { get; set; }
 
-        public GetOrdersByCustomerIdQuery(Guid customerId)
+        public GetOrdersByUserIdQuery(Guid userId)
         {
-            CustomerId = customerId;
+            UserId = userId;
         }
     }
 }

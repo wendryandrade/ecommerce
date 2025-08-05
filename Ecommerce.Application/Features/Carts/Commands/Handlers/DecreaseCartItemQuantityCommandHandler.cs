@@ -14,7 +14,7 @@ namespace Ecommerce.Application.Features.Carts.Commands.Handlers
 
         public async Task<bool> Handle(DecreaseCartItemQuantityCommand request, CancellationToken cancellationToken)
         {
-            var cart = await _cartRepository.GetByCustomerIdAsync(request.CustomerId);
+            var cart = await _cartRepository.GetByUserIdAsync(request.UserId);
             if (cart == null) return false;
 
             var item = cart.CartItems.FirstOrDefault(ci => ci.ProductId == request.ProductId);
