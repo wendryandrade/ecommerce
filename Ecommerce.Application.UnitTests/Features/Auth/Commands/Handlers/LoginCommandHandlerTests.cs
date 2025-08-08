@@ -1,0 +1,91 @@
+﻿using Ecommerce.Application.Features.Auth.Commands;
+using Ecommerce.Application.Features.Auth.Commands.Handlers;
+using Ecommerce.Application.Interfaces;
+using Ecommerce.Domain.Entities;
+using Moq;
+using System.Security.Cryptography;
+
+namespace Ecommerce.Application.UnitTests.Features.Auth.Commands.Handlers
+{
+    public class LoginCommandHandlerTests
+    {
+        private readonly Mock<IUserRepository> _mockUserRepository;
+        private readonly Mock<IAuthService> _mockAuthService;
+        private readonly LoginCommandHandler _handler;
+
+        public LoginCommandHandlerTests()
+        {
+            _mockUserRepository = new Mock<IUserRepository>();
+            _mockAuthService = new Mock<IAuthService>();
+            _handler = new LoginCommandHandler(_mockUserRepository.Object, _mockAuthService.Object);
+        }
+
+        // Método auxiliar para gerar um hash de senha válido para os testes
+        private string GenerateValidPasswordHash(string password, byte[] salt)
+        {
+            var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 10000, HashAlgorithmName.SHA256);
+            byte[] hash = pbkdf2.GetBytes(20);
+            byte[] hashBytes = new byte[36];
+            Array.Copy(salt, 0, hashBytes, 0, 16);
+            Array.Copy(hash, 0, hashBytes, 16, 20);
+            return Convert.ToBase64String(hashBytes);
+        }
+
+        [Fact]
+        public async Task Handle_ShouldReturnJwtToken_WhenCredentialsAreValid()
+        {
+            // Arrange
+            var password = "Password123!";
+            var salt = new byte[16]; // Usamos um salt fixo para o teste ser determinístico
+            var command = new LoginCommand { Email = "teste@email.com", Password = password };
+            var passwordHash = GenerateValidPasswordHash(password, salt);
+            var userFromRepo = new User { Id = Guid.NewGuid(), Email = command.Email, PasswordHash = passwordHash, Role = "Customer" };
+            var expectedToken = "token_jwt_gerado_aqui";
+
+            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(command.Email)).ReturnsAsync(userFromRepo);
+            _mockAuthService.Setup(auth => auth.GenerateJwtToken(It.IsAny<User>())).Returns(expectedToken);
+
+            // Act
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.Equal(expectedToken, result);
+        }
+
+        [Fact]
+        public async Task Handle_ShouldReturnNull_WhenUserDoesNotExist()
+        {
+            // Arrange
+            var command = new LoginCommand { Email = "naoexiste@email.com", Password = "123" };
+            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(command.Email)).ReturnsAsync((User)null);
+
+            // Act
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task Handle_ShouldReturnNull_WhenPasswordIsIncorrect()
+        {
+            // Arrange
+            var correctPassword = "Password123!";
+            var incorrectPassword = "senha_errada";
+            var salt = new byte[16];
+            var command = new LoginCommand { Email = "teste@email.com", Password = incorrectPassword };
+
+            // Geramos um hash com a senha CORRETA para simular o que está no "banco"
+            var validPasswordHash = GenerateValidPasswordHash(correctPassword, salt);
+            var userFromRepo = new User { Id = Guid.NewGuid(), Email = command.Email, PasswordHash = validPasswordHash, Role = "Customer" };
+
+            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(command.Email)).ReturnsAsync(userFromRepo);
+
+            // Act
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.Null(result); // Esperamos nulo porque a senha enviada ("senha_errada") está incorreta
+        }
+    }
+}
