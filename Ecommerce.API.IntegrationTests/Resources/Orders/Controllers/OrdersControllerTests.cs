@@ -5,11 +5,12 @@ using Ecommerce.API.Resources.Orders.DTOs.Requests;
 using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Enums;
 using Ecommerce.Infrastructure.Persistence.Context;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Security.Cryptography;
 
 namespace Ecommerce.API.IntegrationTests.Resources.Orders.Controllers
 {
@@ -18,97 +19,102 @@ namespace Ecommerce.API.IntegrationTests.Resources.Orders.Controllers
         private readonly HttpClient _client;
         private readonly CustomWebApplicationFactory<Program> _factory;
 
-        // O construtor prepara o banco de dados para os testes desta classe
         public OrdersControllerTests(CustomWebApplicationFactory<Program> factory)
         {
             _factory = factory;
             _client = factory.CreateClient();
-
-            using (var scope = _factory.Services.CreateScope())
-            {
-                var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                dbContext.Database.EnsureDeleted();
-                dbContext.Database.EnsureCreated();
-            }
         }
 
         [Fact]
-        public async Task CreateOrder_ShouldReturnCreated_WhenCartIsNotEmpty()
+        public async Task CreateOrder_ShouldReturnCreated_WhenCheckoutIsValidAndUserIsAuthenticated()
         {
             // --- ARRANGE ---
 
-            // 1. Crie os dados necessários (produto e usuário) direto no banco.
-            var category = new Category { Name = "Order Test Category", Description = "Desc" };
-            var product = new Product { Name = "Order Test Product", Description = "Desc", Price = 50.0m, StockQuantity = 20, Category = category };
+            var expectedShippingCost = 15.50m;
+            var expectedTransactionId = "pi_mock_transaction_12345";
 
-            using (var scope = _factory.Services.CreateScope())
-            {
-                var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                // Adiciona também os usuários aqui para garantir que o teste seja independente
-                var customerUser = new User
-                {
-                    Id = Guid.Parse("00000000-0000-0000-0000-000000000002"),
-                    FirstName = "Customer",
-                    LastName = "OrderUser",
-                    Email = "customer@test.com",
-                    Role = "Customer"
-                };
-                // CORREÇÃO: Gera um hash de senha válido para o usuário de teste.
-                customerUser.PasswordHash = GeneratePasswordHash("Password123!");
+            _factory.MockShippingService
+                .Setup(s => s.CalculateShippingCostAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(expectedShippingCost);
 
-                dbContext.Users.Add(customerUser);
-                dbContext.Products.Add(product);
-                await dbContext.SaveChangesAsync();
-            }
+            _factory.MockPaymentService
+                .Setup(p => p.ProcessPaymentAsync(It.IsAny<decimal>(), "brl", It.IsAny<string>()))
+                .ReturnsAsync(expectedTransactionId);
 
-            // 2. Autentique o usuário
+            // Obtem o DbContext e limpa apenas os dados transacionais de testes anteriores
+            using var scope = _factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Limpam apenas as tabelas relevantes para o teste.
+            // Os usuários criados pela Factory permanecem intactos.
+            dbContext.Orders.RemoveRange(dbContext.Orders);
+            dbContext.Carts.RemoveRange(dbContext.Carts);
+            dbContext.Products.RemoveRange(dbContext.Products);
+            dbContext.Categories.RemoveRange(dbContext.Categories);
+            await dbContext.SaveChangesAsync();
+
+            // O usuário já foi criado pela Factory, então apenas é buscado
+            var user = await dbContext.Users.FirstAsync(u => u.Email == "customer@test.com");
+            var category = new Category { Name = "Test Category", Description = "A test description" };
+            var product = new Product { Name = "Test Product", Description = "A test product description", Price = 100.00m, StockQuantity = 10, Category = category };
+            var cart = new Cart { UserId = user.Id };
+            cart.AddItem(product, 2);
+
+            dbContext.Products.Add(product);
+            dbContext.Carts.Add(cart);
+            await dbContext.SaveChangesAsync();
+
+            // Autenticar o usuário para obter um token JWT
             var loginRequest = new LoginRequest { Email = "customer@test.com", Password = "Password123!" };
             var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
             loginResponse.EnsureSuccessStatusCode();
             var token = (await loginResponse.Content.ReadFromJsonAsync<LoginResponse>())!.Token;
             _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-            // 3. Adicione um item ao carrinho (esta parte precisa usar a API, pois é parte do fluxo)
-            var addToCartRequest = new AddCartItemRequest { ProductId = product.Id, Quantity = 1 };
-            var addToCartResponse = await _client.PostAsJsonAsync("/api/cart/items", addToCartRequest);
-            addToCartResponse.EnsureSuccessStatusCode();
-
-            // 4. Prepare o request para criar o pedido
+            // Montar a requisição da API
             var createOrderRequest = new CreateOrderRequest
             {
-                UserId = Guid.Parse("00000000-0000-0000-0000-000000000002"),
+                UserId = user.Id,
                 ShippingAddress = new CreateOrderAddressRequest
                 {
-                    Street = "Rua do Pedido",
+                    Street = "Rua do Teste",
                     City = "Cidade Teste",
                     State = "TS",
-                    PostalCode = "98765-432"
+                    PostalCode = "98765432"
                 },
-                PaymentDetails = new CreateOrderPaymentRequest
-                {
-                    PaymentMethod = PaymentMethod.CreditCard
-                }
+                PaymentDetails = new CreateOrderPaymentRequest { PaymentMethod = PaymentMethod.CreditCard }
             };
 
             // --- ACT ---
             var response = await _client.PostAsJsonAsync("/api/orders/checkout", createOrderRequest);
 
             // --- ASSERT ---
+
             response.EnsureSuccessStatusCode();
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        }
 
-        // Método auxiliar para gerar um hash de senha válido.
-        private static string GeneratePasswordHash(string password)
-        {
-            byte[] salt = new byte[16];
-            RandomNumberGenerator.Fill(salt);
-            var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 10000, HashAlgorithmName.SHA256);
-            byte[] hash = pbkdf2.GetBytes(20);
-            byte[] hashBytes = new byte[36];
-            Array.Copy(salt, 0, hashBytes, 0, 16);
-            Array.Copy(hash, 0, hashBytes, 16, 20);
-            return Convert.ToBase64String(hashBytes);
+            var expectedTotalAmount = (2 * 100.00m) + expectedShippingCost;
+
+            _factory.MockShippingService.Verify(s => s.CalculateShippingCostAsync(It.IsAny<string>(), "98765432"), Times.Once);
+            _factory.MockPaymentService.Verify(p => p.ProcessPaymentAsync(expectedTotalAmount, "brl", "pm_card_visa"), Times.Once);
+
+            using var assertScope = _factory.Services.CreateScope();
+            var assertDbContext = assertScope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var orderInDb = await assertDbContext.Orders
+                .Include(o => o.Payment)
+                .Include(o => o.OrderItems)
+                .FirstOrDefaultAsync(o => o.UserId == user.Id);
+
+            Assert.NotNull(orderInDb);
+            Assert.Equal(expectedTotalAmount, orderInDb.TotalAmount);
+            Assert.Equal(OrderStatus.Paid, orderInDb.Status);
+            Assert.NotNull(orderInDb.Payment);
+            Assert.Equal(expectedTransactionId, orderInDb.Payment.TransactionId);
+
+            var productInDb = await assertDbContext.Products.FindAsync(product.Id);
+            Assert.NotNull(productInDb);
+            Assert.Equal(8, productInDb.StockQuantity);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Ecommerce.Application.Interfaces;
+using Ecommerce.Application.Interfaces.Infrastructure;
 using Ecommerce.Infrastructure.Auth;
 using Ecommerce.Infrastructure.Persistence.Context;
 using Ecommerce.Infrastructure.Persistence.Repositories;
@@ -69,7 +70,11 @@ builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IShippingService, Ecommerce.Infrastructure.Services.CorreiosShippingService>();
+
+builder.Services.AddHttpClient(); // Registra a fábrica de HttpClient
 
 // Configurar Autenticação JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
