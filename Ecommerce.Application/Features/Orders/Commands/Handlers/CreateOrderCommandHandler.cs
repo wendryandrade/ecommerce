@@ -1,5 +1,6 @@
 ﻿using Ecommerce.Application.Features.Orders.Commands;
 using Ecommerce.Application.Interfaces;
+using Ecommerce.Application.Interfaces.Infrastructure;
 using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Enums;
 using MediatR;
@@ -11,15 +12,21 @@ namespace Ecommerce.Application.Features.Orders.Handlers
         private readonly IOrderRepository _orderRepository;
         private readonly ICartRepository _cartRepository;
         private readonly IProductRepository _productRepository;
+        private readonly IShippingService _shippingService;
+        private readonly IPaymentService _paymentService; 
 
         public CreateOrderCommandHandler(
             IOrderRepository orderRepository,
             ICartRepository cartRepository,
-            IProductRepository productRepository)
+            IProductRepository productRepository,
+            IShippingService shippingService,
+            IPaymentService paymentService) 
         {
             _orderRepository = orderRepository;
             _cartRepository = cartRepository;
             _productRepository = productRepository;
+            _shippingService = shippingService;
+            _paymentService = paymentService; 
         }
 
         public async Task<Guid> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
@@ -31,7 +38,7 @@ namespace Ecommerce.Application.Features.Orders.Handlers
             }
 
             var orderItems = new List<OrderItem>();
-            decimal totalAmount = 0;
+            decimal itemsTotalAmount = 0;
 
             foreach (var cartItem in cart.CartItems)
             {
@@ -52,20 +59,28 @@ namespace Ecommerce.Application.Features.Orders.Handlers
                     UnitPrice = cartItem.UnitPrice
                 });
 
-                totalAmount += cartItem.Quantity * cartItem.UnitPrice;
+                itemsTotalAmount += cartItem.Quantity * cartItem.UnitPrice;
             }
 
-            // MUDANÇA CRÍTICA AQUI: Criamos o Pedido com suas dependências aninhadas
+            // Calcular o frete
+            var originZipCode = "32000000"; // CEP de origem 
+            var shippingCost = await _shippingService.CalculateShippingCostAsync(originZipCode, request.ShippingAddress.PostalCode);
+
+            var finalTotalAmount = itemsTotalAmount + shippingCost;
+
+            // Processar o pagamento ANTES de salvar o pedido
+            var testPaymentMethodId = "pm_card_visa";
+            var transactionId = await _paymentService.ProcessPaymentAsync(finalTotalAmount, "brl", testPaymentMethodId);
+
+            // Criar o Pedido com os dados corretos
             var order = new Order
             {
                 Id = Guid.NewGuid(),
                 UserId = request.UserId,
                 OrderDate = DateTime.UtcNow,
-                TotalAmount = totalAmount,
-                Status = OrderStatus.Pending,
+                TotalAmount = finalTotalAmount,
+                Status = OrderStatus.Paid, // O pedido já nasce como "Pago"
                 OrderItems = orderItems,
-
-                // O Endereço de Entrega é criado DIRETAMENTE AQUI
                 ShippingAddress = new Address
                 {
                     Id = Guid.NewGuid(),
@@ -74,20 +89,16 @@ namespace Ecommerce.Application.Features.Orders.Handlers
                     State = request.ShippingAddress.State,
                     PostalCode = request.ShippingAddress.PostalCode
                 },
-
-                // O Pagamento é criado DIRETAMENTE AQUI
                 Payment = new Payment
                 {
                     Id = Guid.NewGuid(),
-                    Amount = totalAmount,
+                    Amount = finalTotalAmount, // O valor do pagamento é o valor final
                     PaymentMethod = request.PaymentDetails.PaymentMethod,
-                    Status = PaymentStatus.Pending,
-                    TransactionId = "trans_" + Guid.NewGuid().ToString().Substring(0, 8)
+                    Status = PaymentStatus.Paid, // O pagamento já foi bem-sucedido
+                    TransactionId = transactionId // O ID real retornado pelo Stripe
                 }
             };
 
-            // Agora, ao adicionar o pedido, o EF Core entende que ele "possui"
-            // um Endereço e um Pagamento, e salva todos juntos.
             await _orderRepository.AddAsync(order, cancellationToken);
 
             cart.Clear();

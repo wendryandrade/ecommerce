@@ -1,17 +1,27 @@
-﻿using Ecommerce.Domain.Entities;
+﻿using Ecommerce.Application.Interfaces;
+using Ecommerce.Application.Interfaces.Infrastructure;
+using Ecommerce.Domain.Entities;
 using Ecommerce.Infrastructure.Persistence.Context;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using System.Data.Common;
+using System.Runtime.Intrinsics.X86;
 using System.Security.Cryptography;
 
 public class CustomWebApplicationFactory<TProgram> : WebApplicationFactory<TProgram> where TProgram : class
 {
     private DbConnection _connection;
+
+    // Mocks públicos para os testes acessarem
+    public readonly Mock<IShippingService> MockShippingService = new();
+    public readonly Mock<IPaymentService> MockPaymentService = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -27,20 +37,44 @@ public class CustomWebApplicationFactory<TProgram> : WebApplicationFactory<TProg
             });
         });
 
-        builder.ConfigureServices(services =>
+        // Isso garante que as modificações rodem DEPOIS da configuração normal da API.
+        builder.ConfigureTestServices(services =>
         {
+            // O bloco para remover os serviços reais e adicionar os Mocks
+            // --- INÍCIO DA INJEÇÃO DOS MOCKS ---
+            var shippingDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IShippingService));
+            if (shippingDescriptor != null) services.Remove(shippingDescriptor);
+
+            var paymentDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IPaymentService));
+            if (paymentDescriptor != null) services.Remove(paymentDescriptor);
+
+            services.AddScoped(_ => MockShippingService.Object);
+            services.AddScoped(_ => MockPaymentService.Object);
+            // --- FIM DA INJEÇÃO DOS MOCKS ---
+
             var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
             if (descriptor != null)
                 services.Remove(descriptor);
 
-            _connection = new SqliteConnection("DataSource=:memory:");
-            _connection.Open();
+            // ADICIONE ISSO (4/4): Uma pequena correção para evitar recriar a conexão
+            var connectionDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbConnection));
+            if (connectionDescriptor != null)
+                services.Remove(connectionDescriptor);
 
-            services.AddSingleton<DbConnection>(_connection);
-
-            services.AddDbContext<AppDbContext>(options =>
+            services.AddSingleton<DbConnection>(container =>
             {
-                options.UseSqlite(_connection);
+                if (_connection == null)
+                {
+                    _connection = new SqliteConnection("DataSource=:memory:");
+                    _connection.Open();
+                }
+                return _connection;
+            });
+
+            services.AddDbContext<AppDbContext>((container, options) =>
+            {
+                var connection = container.GetRequiredService<DbConnection>();
+                options.UseSqlite(connection);
             });
 
             var sp = services.BuildServiceProvider();

@@ -2,6 +2,7 @@
 using Ecommerce.Application.Features.Orders.DTOs;
 using Ecommerce.Application.Features.Orders.Handlers;
 using Ecommerce.Application.Interfaces;
+using Ecommerce.Application.Interfaces.Infrastructure;
 using Ecommerce.Domain.Entities;
 using Moq;
 
@@ -12,24 +13,28 @@ namespace Ecommerce.Application.UnitTests.Features.Orders.Commands.Handlers
         private readonly Mock<IOrderRepository> _mockOrderRepository;
         private readonly Mock<ICartRepository> _mockCartRepository;
         private readonly Mock<IProductRepository> _mockProductRepository;
+        private readonly Mock<IShippingService> _mockShippingService; 
+        private readonly Mock<IPaymentService> _mockPaymentService;   
         private readonly CreateOrderCommandHandler _handler;
 
         public CreateOrderCommandHandlerTests()
         {
-            // Agora temos 3 dependências para "mockar"
             _mockOrderRepository = new Mock<IOrderRepository>();
             _mockCartRepository = new Mock<ICartRepository>();
             _mockProductRepository = new Mock<IProductRepository>();
+            _mockShippingService = new Mock<IShippingService>(); 
+            _mockPaymentService = new Mock<IPaymentService>();  
 
             _handler = new CreateOrderCommandHandler(
                 _mockOrderRepository.Object,
                 _mockCartRepository.Object,
-                _mockProductRepository.Object
+                _mockProductRepository.Object,
+                _mockShippingService.Object,
+                _mockPaymentService.Object
             );
         }
 
         [Fact]
-        // Deveria criar uma ordem com sucesso quando o carrinho não está vazio e os produtos tem estoque suficiente
         public async Task Handle_ShouldCreateOrder_WhenCartIsNotEmptyAndProductsHaveStock()
         {
             // Arrange
@@ -38,7 +43,7 @@ namespace Ecommerce.Application.UnitTests.Features.Orders.Commands.Handlers
             var command = new CreateOrderCommand
             {
                 UserId = userId,
-                ShippingAddress = new OrderAddressDto { Street = "Rua Teste" },
+                ShippingAddress = new OrderAddressDto { Street = "Rua Teste", PostalCode = "12345-678" },
                 PaymentDetails = new OrderPaymentDto { PaymentMethod = Domain.Enums.PaymentMethod.CreditCard }
             };
 
@@ -49,20 +54,30 @@ namespace Ecommerce.Application.UnitTests.Features.Orders.Commands.Handlers
                 CartItems = new List<CartItem> { new CartItem { ProductId = productId, Quantity = 1, UnitPrice = 100, Product = productInStock } }
             };
 
-            // "Ensinar" os mocks
+            // "Ensinar" os mocks de repositório 
             _mockCartRepository.Setup(repo => repo.GetByUserIdAsync(userId)).ReturnsAsync(cart);
             _mockProductRepository.Setup(repo => repo.GetByIdAsync(productId)).ReturnsAsync(productInStock);
+
+            // "Ensinar" os mocks de serviço a retornarem valores de sucesso
+            _mockShippingService.Setup(s => s.CalculateShippingCostAsync(It.IsAny<string>(), It.IsAny<string>()))
+                                .ReturnsAsync(10.00m); // Retorna um frete de R$10,00
+
+            _mockPaymentService.Setup(p => p.ProcessPaymentAsync(It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<string>()))
+                               .ReturnsAsync("pi_mock_transaction_id"); // Retorna um ID de transação falso
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
 
             // Assert
-            Assert.NotEqual(Guid.Empty, result); // Verifica se um ID de pedido foi retornado
+            Assert.NotEqual(Guid.Empty, result);
 
-            // Verifica se os métodos corretos foram chamados o número certo de vezes
-            _mockProductRepository.Verify(repo => repo.UpdateAsync(It.IsAny<Product>()), Times.Once); // Verificando a baixa de stock
-            _mockOrderRepository.Verify(repo => repo.AddAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()), Times.Once); // Verificando se o pedido foi salvo
-            _mockCartRepository.Verify(repo => repo.UpdateAsync(It.IsAny<Cart>()), Times.Once); // Verificando se o carrinho foi atualizado (limpo)
+            // Verificamos se os serviços foram chamados
+            _mockShippingService.Verify(s => s.CalculateShippingCostAsync(It.IsAny<string>(), "12345-678"), Times.Once);
+            _mockPaymentService.Verify(p => p.ProcessPaymentAsync(110.00m, "brl", It.IsAny<string>()), Times.Once); // 100 (produto) + 10 (frete)
+
+            _mockProductRepository.Verify(repo => repo.UpdateAsync(It.IsAny<Product>()), Times.Once);
+            _mockOrderRepository.Verify(repo => repo.AddAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()), Times.Once);
+            _mockCartRepository.Verify(repo => repo.UpdateAsync(It.IsAny<Cart>()), Times.Once);
         }
 
         [Fact]
