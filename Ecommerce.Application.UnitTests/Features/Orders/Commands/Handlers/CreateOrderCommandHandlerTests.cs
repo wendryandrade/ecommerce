@@ -1,41 +1,36 @@
 ﻿using Ecommerce.Application.Features.Orders.Commands;
 using Ecommerce.Application.Features.Orders.DTOs;
+using Ecommerce.Application.Features.Orders.Events;
 using Ecommerce.Application.Features.Orders.Handlers;
 using Ecommerce.Application.Interfaces;
-using Ecommerce.Application.Interfaces.Infrastructure;
 using Ecommerce.Domain.Entities;
+using MassTransit;
 using Moq;
 
 namespace Ecommerce.Application.UnitTests.Features.Orders.Commands.Handlers
 {
     public class CreateOrderCommandHandlerTests
     {
-        private readonly Mock<IOrderRepository> _mockOrderRepository;
         private readonly Mock<ICartRepository> _mockCartRepository;
         private readonly Mock<IProductRepository> _mockProductRepository;
-        private readonly Mock<IShippingService> _mockShippingService; 
-        private readonly Mock<IPaymentService> _mockPaymentService;   
+        private readonly Mock<IPublishEndpoint> _mockPublishEndpoint;
         private readonly CreateOrderCommandHandler _handler;
 
         public CreateOrderCommandHandlerTests()
         {
-            _mockOrderRepository = new Mock<IOrderRepository>();
             _mockCartRepository = new Mock<ICartRepository>();
             _mockProductRepository = new Mock<IProductRepository>();
-            _mockShippingService = new Mock<IShippingService>(); 
-            _mockPaymentService = new Mock<IPaymentService>();  
+            _mockPublishEndpoint = new Mock<IPublishEndpoint>();
 
             _handler = new CreateOrderCommandHandler(
-                _mockOrderRepository.Object,
                 _mockCartRepository.Object,
                 _mockProductRepository.Object,
-                _mockShippingService.Object,
-                _mockPaymentService.Object
+                _mockPublishEndpoint.Object
             );
         }
 
         [Fact]
-        public async Task Handle_ShouldCreateOrder_WhenCartIsNotEmptyAndProductsHaveStock()
+        public async Task Handle_ShouldPublishOrderSubmissionEvent_WhenCartIsValid()
         {
             // Arrange
             var userId = Guid.NewGuid();
@@ -43,8 +38,8 @@ namespace Ecommerce.Application.UnitTests.Features.Orders.Commands.Handlers
             var command = new CreateOrderCommand
             {
                 UserId = userId,
-                ShippingAddress = new OrderAddressDto { Street = "Rua Teste", PostalCode = "12345-678" },
-                PaymentDetails = new OrderPaymentDto { PaymentMethod = Domain.Enums.PaymentMethod.CreditCard }
+                ShippingAddress = new OrderAddressDto(),
+                PaymentDetails = new OrderPaymentDto()
             };
 
             var productInStock = new Product { Id = productId, Name = "Produto Teste", StockQuantity = 10, Price = 100 };
@@ -54,16 +49,13 @@ namespace Ecommerce.Application.UnitTests.Features.Orders.Commands.Handlers
                 CartItems = new List<CartItem> { new CartItem { ProductId = productId, Quantity = 1, UnitPrice = 100, Product = productInStock } }
             };
 
-            // "Ensinar" os mocks de repositório 
             _mockCartRepository.Setup(repo => repo.GetByUserIdAsync(userId)).ReturnsAsync(cart);
+
+            // --- A CORREÇÃO ESTÁ AQUI ---
+            // Adicionamos de volta a configuração do mock do produto.
+            // Isso é necessário para a verificação de estoque que acontece ANTES de publicar.
             _mockProductRepository.Setup(repo => repo.GetByIdAsync(productId)).ReturnsAsync(productInStock);
-
-            // "Ensinar" os mocks de serviço a retornarem valores de sucesso
-            _mockShippingService.Setup(s => s.CalculateShippingCostAsync(It.IsAny<string>(), It.IsAny<string>()))
-                                .ReturnsAsync(10.00m); // Retorna um frete de R$10,00
-
-            _mockPaymentService.Setup(p => p.ProcessPaymentAsync(It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<string>()))
-                               .ReturnsAsync("pi_mock_transaction_id"); // Retorna um ID de transação falso
+            // -------------------------
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
@@ -71,12 +63,11 @@ namespace Ecommerce.Application.UnitTests.Features.Orders.Commands.Handlers
             // Assert
             Assert.NotEqual(Guid.Empty, result);
 
-            // Verificamos se os serviços foram chamados
-            _mockShippingService.Verify(s => s.CalculateShippingCostAsync(It.IsAny<string>(), "12345-678"), Times.Once);
-            _mockPaymentService.Verify(p => p.ProcessPaymentAsync(110.00m, "brl", It.IsAny<string>()), Times.Once); // 100 (produto) + 10 (frete)
+            _mockPublishEndpoint.Verify(p => p.Publish(
+                It.IsAny<OrderSubmissionEvent>(),
+                It.IsAny<CancellationToken>()),
+                Times.Once);
 
-            _mockProductRepository.Verify(repo => repo.UpdateAsync(It.IsAny<Product>()), Times.Once);
-            _mockOrderRepository.Verify(repo => repo.AddAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()), Times.Once);
             _mockCartRepository.Verify(repo => repo.UpdateAsync(It.IsAny<Cart>()), Times.Once);
         }
 

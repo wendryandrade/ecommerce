@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+
+  # API de E-commerce
+  ecommerce-api:
+    build:
+      context: .
+      dockerfile: Ecommerce.API/Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      - ecommerce-db
+      - rabbitmq
+    environment:
+      - DB_HOST=ecommerce-db
+      - DB_PORT=1433
+      - DB_USER=sa
+      - DB_PASS=Your_password123!
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=${JWT_ISSUER}
+      - Jwt__Audience=${JWT_AUDIENCE}
+      - Stripe__SecretKey=${STRIPE_SECRETKEY}
+      - ASPNETCORE_ENVIRONMENT=Docker
+      - ASPNETCORE_URLS=http://0.0.0.0:80
+
+  # SQL Server
+  ecommerce-db:
+    image: "mcr.microsoft.com/mssql/server:2022-latest"
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Your_password123!
+
+  # RabbitMQ
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+  # Testes de Integração e Unidade com Docker
+  ecommerce-tests:
+    image: mcr.microsoft.com/dotnet/sdk:8.0
+    working_dir: /src
+    volumes:
+      - ./:/src                       # monta o código
+      - ./TestResults:/src/TestResults # onde os resultados vão
+    command: dotnet test Ecommerce.sln --logger "trx;LogFileName=test_results.trx"
+    depends_on:
+      - ecommerce-db
+      - rabbitmq
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Testing
+      - DB_HOST=ecommerce-db
+      - DB_PORT=1433
+      - DB_USER=sa
+      - DB_PASS=Your_password123!
