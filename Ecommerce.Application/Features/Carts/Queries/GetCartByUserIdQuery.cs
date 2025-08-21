@@ -3,7 +3,7 @@ using MediatR;
 
 namespace Ecommerce.Application.Features.Carts.Queries
 {
-    public class GetCartByUserIdQuery : IRequest<CartDto>
+    public class GetCartByUserIdQuery : IRequest<CartDto?>
     {
         public Guid UserId { get; set; }
 

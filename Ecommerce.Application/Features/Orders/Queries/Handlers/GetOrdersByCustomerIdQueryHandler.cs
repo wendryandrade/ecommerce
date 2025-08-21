@@ -29,24 +29,24 @@ namespace Ecommerce.Application.Features.Orders.Queries.Handlers
                 OrderItems = order.OrderItems.Select(item => new OrderItemDto
                 {
                     ProductId = item.ProductId,
-                    ProductName = item.Product?.Name ?? "Produto não encontrado",
+                    ProductName = item.Product.Name,
                     Quantity = item.Quantity,
                     UnitPrice = item.UnitPrice
                 }).ToList(),    
-                Payment = order.Payment == null ? null : new PaymentDto
+                Payment = order.Payment != null ? new PaymentDto
                 {
                     PaymentMethod = order.Payment.PaymentMethod,
                     Status = order.Payment.Status,
                     Amount = order.Payment.Amount,
                     TransactionId = order.Payment.TransactionId
-                },
-                ShippingAddress = order.ShippingAddress == null ? null : new AddressDto
+                } : null,
+                ShippingAddress = order.ShippingAddress != null ? new AddressDto
                 {
                     Street = order.ShippingAddress.Street,
                     City = order.ShippingAddress.City,
                     State = order.ShippingAddress.State,
                     PostalCode = order.ShippingAddress.PostalCode
-                }
+                } : null
             }).ToList();
 
             return orderDtos;

@@ -21,7 +21,7 @@ namespace Ecommerce.Application.UnitTests.Features.Auth.Commands.Handlers
         }
 
         // Método auxiliar para gerar um hash de senha válido para os testes
-        private string GenerateValidPasswordHash(string password, byte[] salt)
+        private static string GenerateValidPasswordHash(string password, byte[] salt)
         {
             var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 10000, HashAlgorithmName.SHA256);
             byte[] hash = pbkdf2.GetBytes(20);
@@ -57,7 +57,7 @@ namespace Ecommerce.Application.UnitTests.Features.Auth.Commands.Handlers
         {
             // Arrange
             var command = new LoginCommand { Email = "naoexiste@email.com", Password = "123" };
-            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(command.Email)).ReturnsAsync((User)null);
+            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(command.Email)).ReturnsAsync((User?)null);
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);
@@ -86,6 +86,71 @@ namespace Ecommerce.Application.UnitTests.Features.Auth.Commands.Handlers
 
             // Assert
             Assert.Null(result); // Esperamos nulo porque a senha enviada ("senha_errada") está incorreta
+        }
+
+        [Fact]
+        public async Task Handle_ShouldReturnNull_WhenPasswordHashIsInvalid()
+        {
+            // Arrange
+            var command = new LoginCommand { Email = "teste@email.com", Password = "Password123!" };
+            var userFromRepo = new User { Id = Guid.NewGuid(), Email = command.Email, PasswordHash = "invalid_hash_format", Role = "Customer" };
+
+            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(command.Email)).ReturnsAsync(userFromRepo);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<FormatException>(() => _handler.Handle(command, CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task Handle_ShouldReturnNull_WhenPasswordHashIsEmpty()
+        {
+            // Arrange
+            var command = new LoginCommand { Email = "teste@email.com", Password = "Password123!" };
+            var userFromRepo = new User { Id = Guid.NewGuid(), Email = command.Email, PasswordHash = "", Role = "Customer" };
+
+            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(command.Email)).ReturnsAsync(userFromRepo);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentException>(() => _handler.Handle(command, CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task Handle_ShouldReturnNull_WhenPasswordHashIsNull()
+        {
+            // Arrange
+            var command = new LoginCommand { Email = "teste@email.com", Password = "Password123!" };
+            var userFromRepo = new User { Id = Guid.NewGuid(), Email = command.Email, PasswordHash = null!, Role = "Customer" };
+
+            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(command.Email)).ReturnsAsync(userFromRepo);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ArgumentNullException>(() => _handler.Handle(command, CancellationToken.None));
+        }
+
+        [Fact]
+        public async Task Handle_ShouldReturnNull_WhenEmailIsEmpty()
+        {
+            // Arrange
+            var command = new LoginCommand { Email = "", Password = "Password123!" };
+
+            // Act
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task Handle_ShouldReturnNull_WhenPasswordIsEmpty()
+        {
+            // Arrange
+            var command = new LoginCommand { Email = "teste@email.com", Password = "" };
+
+            // Act
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.Null(result);
         }
     }
 }

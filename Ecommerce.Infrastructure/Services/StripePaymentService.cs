@@ -6,15 +6,11 @@ namespace Ecommerce.Infrastructure.Services
 {
     public class StripePaymentService : IPaymentService
     {
-        private readonly IConfiguration _configuration;
-
         public StripePaymentService(IConfiguration configuration)
         {
-            _configuration = configuration;
-
             // A chave da API é configurada uma vez para toda a aplicação.
             // O .NET vai buscar em appsettings.json, appsettings.Development.json e, finalmente, no User Secrets.
-            StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"];
+            StripeConfiguration.ApiKey = configuration["Stripe:SecretKey"];
         }
 
         public async Task<string> ProcessPaymentAsync(decimal amount, string currency, string paymentMethodId)

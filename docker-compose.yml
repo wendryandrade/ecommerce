@@ -16,13 +16,14 @@ services:
       - DB_HOST=ecommerce-db
       - DB_PORT=1433
       - DB_USER=sa
-      - DB_PASS=Your_password123!
+      - DB_PASS=${DB_PASS}
       - Jwt__Key=${JWT_KEY}
       - Jwt__Issuer=${JWT_ISSUER}
       - Jwt__Audience=${JWT_AUDIENCE}
       - Stripe__SecretKey=${STRIPE_SECRETKEY}
       - ASPNETCORE_ENVIRONMENT=Docker
       - ASPNETCORE_URLS=http://0.0.0.0:80
+      - ConnectionStrings__DefaultConnection=Server=ecommerce-db,1433;Database=EcommerceDB;User ID=sa;Password=${DB_PASS};TrustServerCertificate=True
 
   # SQL Server
   ecommerce-db:
@@ -31,7 +32,7 @@ services:
       - "1433:1433"
     environment:
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=Your_password123!
+      - SA_PASSWORD=${DB_PASS:-Your_password123!}
 
   # RabbitMQ
   rabbitmq:
@@ -50,7 +51,7 @@ services:
     volumes:
       - ./:/src                       # monta o código
       - ./TestResults:/src/TestResults # onde os resultados vão
-    command: dotnet test Ecommerce.sln --logger "trx;LogFileName=test_results.trx"
+    command: sh scripts/run-tests.sh
     depends_on:
       - ecommerce-db
       - rabbitmq
@@ -69,7 +70,7 @@ services:
       - POSTGRES_PASSWORD=sonar
       - POSTGRES_DB=sonar
     volumes:
-      - sonardata:/var/lib/postgresql/data
+      - sonardata:/var/lib/postgresql/data  # Persistência do banco
 
   # Servidor SonarQube
   sonarqube:
@@ -84,6 +85,13 @@ services:
       - SONARQUBE_JDBC_PASSWORD=sonar
       - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
       - sonar.web.context=/
-
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data       # Dados persistentes do SonarQube
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+ 
 volumes:
-  sonardata:
+   sonardata: {}
+   sonarqube_data: {}
+   sonarqube_extensions: {}
+   sonarqube_logs: {}

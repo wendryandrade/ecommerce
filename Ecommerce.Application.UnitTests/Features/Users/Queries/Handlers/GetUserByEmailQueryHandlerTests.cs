@@ -49,13 +49,142 @@ namespace Ecommerce.Application.UnitTests.Features.Users.Queries.Handlers
             var query = new GetUserByEmailQuery { Email = userEmail };
 
             // "Ensina" o mock a retornar nulo quando o método GetByEmailAsync for chamado.
-            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync((User)null);
+            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(It.IsAny<string>())).ReturnsAsync((User?)null);
 
             // Act
             var result = await _handler.Handle(query, CancellationToken.None);
 
             // Assert
             Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task Handle_ShouldMapAllUserProperties_WhenUserExists()
+        {
+            // Arrange
+            var userId = Guid.NewGuid();
+            var userEmail = "completo@email.com";
+            var query = new GetUserByEmailQuery { Email = userEmail };
+            var userFromRepo = new User 
+            { 
+                Id = userId, 
+                FirstName = "João", 
+                LastName = "Silva", 
+                Email = userEmail,
+                Role = "Customer"
+            };
+
+            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(userEmail)).ReturnsAsync(userFromRepo);
+
+            // Act
+            var result = await _handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(userId, result.Id);
+            Assert.Equal("João", result.FirstName);
+            Assert.Equal("Silva", result.LastName);
+            Assert.Equal(userEmail, result.Email);
+        }
+
+        [Fact]
+        public async Task Handle_ShouldReturnNull_WhenEmailIsEmpty()
+        {
+            // Arrange
+            var query = new GetUserByEmailQuery { Email = "" };
+
+            _mockUserRepository.Setup(repo => repo.GetByEmailAsync("")).ReturnsAsync((User?)null);
+
+            // Act
+            var result = await _handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task Handle_ShouldReturnNull_WhenEmailIsNull()
+        {
+            // Arrange
+            var query = new GetUserByEmailQuery { Email = "" };
+
+            _mockUserRepository.Setup(repo => repo.GetByEmailAsync("")).ReturnsAsync((User?)null);
+
+            // Act
+            var result = await _handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task Handle_ShouldVerifyRepositoryCall_WhenQueryIsExecuted()
+        {
+            // Arrange
+            var userEmail = "teste@email.com";
+            var query = new GetUserByEmailQuery { Email = userEmail };
+            var userFromRepo = new User { Id = Guid.NewGuid(), Email = userEmail };
+
+            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(userEmail)).ReturnsAsync(userFromRepo);
+
+            // Act
+            var result = await _handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(result);
+            _mockUserRepository.Verify(repo => repo.GetByEmailAsync(userEmail), Times.Once);
+        }
+
+        [Fact]
+        public async Task Handle_ShouldReturnUserDtoWithEmptyStrings_WhenUserHasEmptyProperties()
+        {
+            // Arrange
+            var userEmail = "vazio@email.com";
+            var query = new GetUserByEmailQuery { Email = userEmail };
+            var userFromRepo = new User 
+            { 
+                Id = Guid.NewGuid(), 
+                FirstName = "", 
+                LastName = "", 
+                Email = userEmail 
+            };
+
+            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(userEmail)).ReturnsAsync(userFromRepo);
+
+            // Act
+            var result = await _handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("", result.FirstName);
+            Assert.Equal("", result.LastName);
+            Assert.Equal(userEmail, result.Email);
+        }
+
+        [Fact]
+        public async Task Handle_ShouldReturnUserDtoWithNullStrings_WhenUserHasNullProperties()
+        {
+            // Arrange
+            var userEmail = "null@email.com";
+            var query = new GetUserByEmailQuery { Email = userEmail };
+            var userFromRepo = new User 
+            { 
+                Id = Guid.NewGuid(), 
+                FirstName = "", 
+                LastName = "", 
+                Email = userEmail 
+            };
+
+            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(userEmail)).ReturnsAsync(userFromRepo);
+
+            // Act
+            var result = await _handler.Handle(query, CancellationToken.None);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("", result.FirstName);
+            Assert.Equal("", result.LastName);
+            Assert.Equal(userEmail, result.Email);
         }
     }
 }

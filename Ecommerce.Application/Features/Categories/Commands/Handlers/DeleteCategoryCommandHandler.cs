@@ -18,7 +18,7 @@ namespace Ecommerce.Application.Features.Categories.Commands.Handlers
             if (category == null)
                 return false;
 
-            if (category.Products != null && category.Products.Any())
+            if (category.Products != null && category.Products.Count > 0)
                 throw new InvalidOperationException("Não é possível excluir uma categoria com produtos vinculados.");
 
             await _repository.DeleteAsync(category);

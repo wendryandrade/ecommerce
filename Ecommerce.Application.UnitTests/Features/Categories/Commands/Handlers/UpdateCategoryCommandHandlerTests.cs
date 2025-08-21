@@ -42,7 +42,7 @@ namespace Ecommerce.Application.UnitTests.Features.Categories.Commands.Handlers
         {
             // Arrange
             var command = new UpdateCategoryCommand { Id = Guid.NewGuid() };
-            _mockCategoryRepository.Setup(repo => repo.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Category)null);
+            _mockCategoryRepository.Setup(repo => repo.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Category?)null);
 
             // Act
             var result = await _handler.Handle(command, CancellationToken.None);

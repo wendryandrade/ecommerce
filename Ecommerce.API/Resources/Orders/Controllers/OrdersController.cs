@@ -97,7 +97,7 @@ namespace Ecommerce.API.Resources.Orders.Controllers
             return NoContent();
         }
 
-        private OrderResponse MapToOrderResponse(OrderDto dto)
+        private static OrderResponse MapToOrderResponse(OrderDto dto)
         {
             return new OrderResponse
             {

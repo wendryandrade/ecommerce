@@ -65,7 +65,7 @@ namespace Ecommerce.Application.UnitTests.Features.Carts.Queries.Handlers
             var userId = Guid.NewGuid();
             var query = new GetCartByUserIdQuery(userId);
 
-            _mockCartRepository.Setup(repo => repo.GetByUserIdAsync(userId)).ReturnsAsync((Cart)null);
+            _mockCartRepository.Setup(repo => repo.GetByUserIdAsync(userId)).ReturnsAsync((Cart?)null);
 
             // Act
             var result = await _handler.Handle(query, CancellationToken.None);

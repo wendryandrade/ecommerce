@@ -59,7 +59,7 @@ namespace Ecommerce.Application.UnitTests.Features.Orders.Queries.Handlers
             var query = new GetOrderByIdQuery { Id = orderId };
 
             _mockOrderRepository.Setup(repo => repo.GetByIdAsync(orderId, It.IsAny<CancellationToken>()))
-                                .ReturnsAsync((Order)null);
+                                .ReturnsAsync((Order?)null);
 
             // Act
             var result = await _handler.Handle(query, CancellationToken.None);

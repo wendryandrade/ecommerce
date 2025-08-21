@@ -46,7 +46,7 @@ namespace Ecommerce.Application.UnitTests.Features.Categories.Queries.Handlers
             var categoryId = Guid.NewGuid();
             var query = new GetCategoryByIdQuery { Id = categoryId };
 
-            _mockCategoryRepository.Setup(repo => repo.GetByIdAsync(categoryId)).ReturnsAsync((Category)null);
+            _mockCategoryRepository.Setup(repo => repo.GetByIdAsync(categoryId)).ReturnsAsync((Category?)null);
 
             // Act
             var result = await _handler.Handle(query, CancellationToken.None);

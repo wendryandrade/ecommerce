@@ -19,8 +19,14 @@ namespace Ecommerce.Infrastructure.Auth
 
         public string GenerateJwtToken(User user)
         {
+            var jwtKey = _configuration["Jwt:Key"];
+            if (string.IsNullOrEmpty(jwtKey))
+            {
+                throw new InvalidOperationException("Chave JWT não configurada");
+            }
+
             // Busca a chave secreta do appsettings.json
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
 
             // Cria as credenciais para assinar o token
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
