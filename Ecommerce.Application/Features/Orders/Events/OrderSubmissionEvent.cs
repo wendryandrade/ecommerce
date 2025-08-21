@@ -6,9 +6,9 @@ namespace Ecommerce.Application.Features.Orders.Events
     {
         public Guid OrderId { get; set; }
         public Guid UserId { get; set; }
-        public OrderAddressDto ShippingAddress { get; set; }
-        public OrderPaymentDto PaymentDetails { get; set; }
-        public List<EventCartItem> CartItems { get; set; }
+        public OrderAddressDto ShippingAddress { get; set; } = new();
+        public OrderPaymentDto PaymentDetails { get; set; } = new();
+        public List<EventCartItem> CartItems { get; set; } = new();
     }
 
     public class EventCartItem

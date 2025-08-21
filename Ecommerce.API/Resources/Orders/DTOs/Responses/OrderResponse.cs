@@ -8,9 +8,9 @@ namespace Ecommerce.API.Resources.Orders.DTOs.Responses
         public Guid Id { get; set; }
         public DateTime OrderDate { get; set; }
         public decimal TotalAmount { get; set; }
-        public string Status { get; set; }
+        public string Status { get; set; } = string.Empty;
         public List<OrderItemResponse> Items { get; set; } = new();
-        public PaymentResponse Payment { get; set; }
-        public AddressResponse ShippingAddress { get; set; }
+        public PaymentResponse? Payment { get; set; }
+        public AddressResponse? ShippingAddress { get; set; }
     }
 }

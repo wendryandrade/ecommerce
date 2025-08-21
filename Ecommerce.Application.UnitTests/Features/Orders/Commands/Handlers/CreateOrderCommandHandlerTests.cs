@@ -38,8 +38,17 @@ namespace Ecommerce.Application.UnitTests.Features.Orders.Commands.Handlers
             var command = new CreateOrderCommand
             {
                 UserId = userId,
-                ShippingAddress = new OrderAddressDto(),
-                PaymentDetails = new OrderPaymentDto()
+                ShippingAddress = new OrderAddressDto
+                {
+                    Street = "Rua Teste",
+                    City = "Cidade Teste",
+                    State = "Estado Teste",
+                    PostalCode = "12345-678"
+                },
+                PaymentDetails = new OrderPaymentDto
+                {
+                    PaymentMethod = Domain.Enums.PaymentMethod.CreditCard
+                }
             };
 
             var productInStock = new Product { Id = productId, Name = "Produto Teste", StockQuantity = 10, Price = 100 };
@@ -77,7 +86,21 @@ namespace Ecommerce.Application.UnitTests.Features.Orders.Commands.Handlers
         {
             // Arrange
             var userId = Guid.NewGuid();
-            var command = new CreateOrderCommand { UserId = userId };
+            var command = new CreateOrderCommand 
+            { 
+                UserId = userId,
+                ShippingAddress = new OrderAddressDto
+                {
+                    Street = "Rua Teste",
+                    City = "Cidade Teste",
+                    State = "Estado Teste",
+                    PostalCode = "12345-678"
+                },
+                PaymentDetails = new OrderPaymentDto
+                {
+                    PaymentMethod = Domain.Enums.PaymentMethod.CreditCard
+                }
+            };
 
             _mockCartRepository.Setup(repo => repo.GetByUserIdAsync(userId)).ReturnsAsync(new Cart { CartItems = new List<CartItem>() });
 
@@ -95,7 +118,21 @@ namespace Ecommerce.Application.UnitTests.Features.Orders.Commands.Handlers
             // Arrange
             var userId = Guid.NewGuid();
             var productId = Guid.NewGuid();
-            var command = new CreateOrderCommand { UserId = userId };
+            var command = new CreateOrderCommand 
+            { 
+                UserId = userId,
+                ShippingAddress = new OrderAddressDto
+                {
+                    Street = "Rua Teste",
+                    City = "Cidade Teste",
+                    State = "Estado Teste",
+                    PostalCode = "12345-678"
+                },
+                PaymentDetails = new OrderPaymentDto
+                {
+                    PaymentMethod = Domain.Enums.PaymentMethod.CreditCard
+                }
+            };
 
             var productOutOfStock = new Product { Id = productId, StockQuantity = 0 };
             var cart = new Cart

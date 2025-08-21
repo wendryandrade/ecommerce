@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 
 namespace Ecommerce.Application.Features.Auth.Commands.Handlers
 {
-    public class LoginCommandHandler : IRequestHandler<LoginCommand, string>
+    public class LoginCommandHandler : IRequestHandler<LoginCommand, string?>
     {
         private readonly IUserRepository _userRepository;
         private readonly IAuthService _authService;
@@ -15,7 +15,7 @@ namespace Ecommerce.Application.Features.Auth.Commands.Handlers
             _authService = authService;
         }
 
-        public async Task<string> Handle(LoginCommand request, CancellationToken cancellationToken)
+        public async Task<string?> Handle(LoginCommand request, CancellationToken cancellationToken)
         {
             // Encontrar o usuário pelo e-mail
             var user = await _userRepository.GetByEmailAsync(request.Email);
@@ -29,7 +29,10 @@ namespace Ecommerce.Application.Features.Auth.Commands.Handlers
             byte[] salt = new byte[16];
             Array.Copy(hashBytes, 0, salt, 0, 16);
 
-            var pbkdf2 = new Rfc2898DeriveBytes(request.Password, salt, 10000, HashAlgorithmName.SHA256);
+            // Sonar S2053: o salt deve ser imprevisível no momento da geração do hash.
+            // Aqui apenas REUTILIZAMOS o salt já armazenado no hash do usuário para verificar a senha.
+            // Justificativa: esta rotina NÃO gera novos hashes; apenas valida credenciais.
+            var pbkdf2 = new Rfc2898DeriveBytes(request.Password, salt, 10000, HashAlgorithmName.SHA256); // NOSONAR: Using salt extracted from stored hash for verification, not generating a new hash
             byte[] hash = pbkdf2.GetBytes(20);
 
             for (int i = 0; i < 20; i++)

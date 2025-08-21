@@ -52,10 +52,13 @@ builder.Services.AddMassTransit(x =>
         // Usa RabbitMQ normalmente
         x.UsingRabbitMq((context, cfg) =>
         {
+            var rmqUser = Environment.GetEnvironmentVariable("RABBITMQ_USERNAME") ?? "guest";
+            var rmqPass = Environment.GetEnvironmentVariable("RABBITMQ_PASSWORD") ?? "guest";
+
             cfg.Host("rabbitmq", "/", h =>
             {
-                h.Username("guest");
-                h.Password("guest");
+                h.Username(rmqUser);
+                h.Password(rmqPass);
             });
 
             cfg.ConfigureEndpoints(context);
@@ -84,6 +87,12 @@ builder.Services.AddScoped<IPaymentService, StripePaymentService>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        var jwtKey = builder.Configuration["Jwt:Key"];
+        if (string.IsNullOrEmpty(jwtKey))
+        {
+            throw new InvalidOperationException("Chave JWT não configurada");
+        }
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -92,7 +101,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
     });
 
@@ -125,4 +134,8 @@ app.UseAuthorization();
 app.MapControllers();
 app.Run();
 
-public partial class Program { } // Necessário para os testes de integração
+public partial class Program 
+{ 
+    // Construtor protegido para evitar instanciação
+    protected Program() { }
+} // Necessário para os testes de integração

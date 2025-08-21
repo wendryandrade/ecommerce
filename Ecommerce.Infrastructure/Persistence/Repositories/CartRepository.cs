@@ -14,7 +14,7 @@ namespace Ecommerce.Infrastructure.Persistence.Repositories
             _context = context;
         }
 
-        public async Task<Cart> GetByUserIdAsync(Guid userId)
+        public async Task<Cart?> GetByUserIdAsync(Guid userId)
         {
             return await _context.Carts
                 .Include(c => c.CartItems)

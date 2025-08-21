@@ -8,7 +8,7 @@
 
         public void AddItem(Product product, int quantity)
         {
-            if (product == null) throw new ArgumentNullException(nameof(product));
+            ArgumentNullException.ThrowIfNull(product);
             if (quantity <= 0) throw new ArgumentException("A quantidade deve ser positiva");
 
             var existingItem = CartItems.Find(ci => ci.ProductId == product.Id);

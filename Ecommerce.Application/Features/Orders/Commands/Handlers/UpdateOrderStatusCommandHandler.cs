@@ -22,9 +22,6 @@ namespace Ecommerce.Application.Features.Orders.Handlers
                 return false;
             }
 
-            // Aqui você pode adicionar lógicas de negócio no futuro.
-            // Ex: if (order.Status == OrderStatus.Cancelled) return false;
-
             order.Status = request.NewStatus;
 
             await _orderRepository.UpdateAsync(order);

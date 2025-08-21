@@ -31,7 +31,7 @@ namespace Ecommerce.Application.UnitTests.Features.Users.Commands
 
             // "Ensina" o mock a retornar null, simulando que o e-mail não foi encontrado.
             _mockUserRepository.Setup(repo => repo.GetByEmailAsync(command.Email))
-                               .ReturnsAsync((User)null);
+                               .ReturnsAsync((User?)null);
 
             // Queremos verificar que o método AddAsync é chamado.
             _mockUserRepository.Setup(repo => repo.AddAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))

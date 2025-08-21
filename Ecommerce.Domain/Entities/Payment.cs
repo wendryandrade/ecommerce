@@ -7,7 +7,7 @@ namespace Ecommerce.Domain.Entities
         public Guid Id { get; set; }
         public Guid OrderId { get; set; }
         public PaymentMethod PaymentMethod { get; set; }
-        public string TransactionId { get; set; }
+        public string TransactionId { get; set; } = string.Empty;
         public decimal Amount { get; set; } 
         public PaymentStatus Status { get; set; }
     }

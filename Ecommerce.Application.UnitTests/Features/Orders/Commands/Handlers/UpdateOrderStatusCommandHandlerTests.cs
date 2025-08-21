@@ -36,5 +36,24 @@ namespace Ecommerce.Application.UnitTests.Features.Orders.Commands.Handlers
             Assert.True(result);
             _mockOrderRepository.Verify(repo => repo.UpdateAsync(It.Is<Order>(o => o.Status == OrderStatus.Paid)), Times.Once);
         }
+
+        [Fact]
+        // Deveria retornar falso quando o pedido não existe
+        public async Task Handle_ShouldReturnFalse_WhenOrderDoesNotExist()
+        {
+            // Arrange
+            var orderId = Guid.NewGuid();
+            var command = new UpdateOrderStatusCommand { OrderId = orderId, NewStatus = OrderStatus.Paid };
+
+            _mockOrderRepository.Setup(repo => repo.GetByIdAsync(orderId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((Order?)null);
+
+            // Act
+            var result = await _handler.Handle(command, CancellationToken.None);
+
+            // Assert
+            Assert.False(result);
+            _mockOrderRepository.Verify(repo => repo.UpdateAsync(It.IsAny<Order>()), Times.Never);
+        }
     }
 }
