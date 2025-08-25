@@ -74,15 +74,23 @@ jobs:
         run: |
           docker compose up -d sonarqube-db sonarqube rabbitmq
 
-      # Espera pelo SonarQube estar pronto para evitar "Connection refused"
+      # Espera pelo SonarQube estar pronto de forma mais robusta
       - name: Wait for SonarQube to be UP
         run: |
           echo "Waiting for SonarQube to be UP..."
-          for i in {1..90}; do \
-            STATUS=$(docker exec sonarqube curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/api/system/status); \
-            echo "SonarQube status code: $STATUS"; \
-            if [ "$STATUS" = "200" ]; then echo "SonarQube is UP"; break; fi; \
-            sleep 5; \
+          for i in $(seq 1 120); do
+            # Use docker compose ps para verificar o status do container
+            STATUS=$(docker compose ps sonarqube --format "{{.State}}")
+            echo "SonarQube container state: $STATUS"
+            if [[ "$STATUS" == "running" ]]; then
+              # Se o container está rodando, tente a verificação de saúde com curl
+              HEALTHY=$(docker exec ecommerce-sonarqube-1 curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/api/system/status)
+              if [[ "$HEALTHY" == "200" ]]; then
+                echo "SonarQube is UP and healthy."
+                break
+              fi
+            fi
+            sleep 5
           done
           
       - name: SonarQube begin analysis
