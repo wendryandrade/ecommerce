@@ -110,7 +110,7 @@ docker compose down -v
 
 ---
 
-# Informações adicionais
+### Informações adicionais
 
 - Ajuste de line endings do entrypoint
   - Se ocorrer erro "/entrypoint.sh: not found" ao subir os containers no Linux/WSL, converta o arquivo Ecommerce.API/entrypoint.sh para final de linha LF (Unix):
