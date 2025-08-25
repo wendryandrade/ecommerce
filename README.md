@@ -37,7 +37,6 @@ Isso iniciará:
 - **API** (`Ecommerce.API`)
 - **SQL Server**
 - **RabbitMQ**
-- **SonarQube** (se configurado no `docker-compose.yml`)
 
 ---
 
@@ -68,7 +67,6 @@ docker compose up --build -d
 ### 5. Acessos locais
 - **API (Swagger):** [https://localhost:8081/swagger/index.html](https://localhost:8081/swagger/index.html)  
 - **RabbitMQ:** [http://localhost:15672](http://localhost:15672)  
-- **SonarQube (opcional):** [http://localhost:9000](http://localhost:9000)  
 
 ---
 
