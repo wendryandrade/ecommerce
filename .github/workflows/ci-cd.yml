@@ -40,7 +40,6 @@ jobs:
           STRIPE_PUBLISHABLEKEY=${{ secrets.STRIPE_PUBLISHABLEKEY }}
           API_URL=${{ secrets.API_URL }}
           API_TOKEN=${{ secrets.API_TOKEN }}
-          SONAR_TOKEN=${{ secrets.SONAR_TOKEN }}
           DEFAULT_ORIGIN_ZIPCODE=01001000
           SERVICES=1,2,18
           USE_MOCK_DATA=false
@@ -78,20 +77,12 @@ jobs:
 
           dotnet tool install --global dotnet-sonarscanner
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-
-          dotnet sonarscanner begin \
-            /k:"ecommerce" \
-            /n:"Ecommerce" \
-            /d:sonar.host.url="http://localhost:9000" \
-            /d:sonar.login="${{ env.SONAR.TOKEN }}" \
-            /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
-            /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
-            /d:sonar.coverage.exclusions="**/Migrations/**,**/Resources/**/DTOs/**,**/Resources/**/Requests/**,**/Resources/**/Responses/**,**/Program*.cs" \
-            /d:sonar.sourceEncoding="UTF-8"
+	
+	  dotnet sonarscanner begin /k:"ecommerce" /n:"Ecommerce" /d:sonar.host.url="http://localhost:9000" /d:sonar.login="$SONAR_TOKEN" /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" /d:sonar.coverage.exclusions="**/Migrations/**,**/Resources/**/DTOs/**,**/Resources/**/Requests/**,**/Resources/**/Responses/**,**/Program*.cs" /d:sonar.sourceEncoding="UTF-8"
 
           dotnet build ${{ env.SLN_FILE }} --configuration Release --no-incremental
           dotnet test ${{ env.SLN_FILE }} --no-build --configuration Release
-          dotnet sonarscanner end /d:sonar.login="${{ env.SONAR.TOKEN }}"
+          dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
@@ -102,6 +93,16 @@ jobs:
             **/TestResults/**/*.trx
             **/TestResults/**/coverage.opencover.xml
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
@@ -111,6 +112,8 @@ jobs:
           tags: |
             ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/ecommerce-api:latest
             ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/ecommerce-api:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Cleanup
         if: always()
