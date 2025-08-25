@@ -72,19 +72,19 @@ jobs:
       # Inicia os serviços com Docker Compose, incluindo SonarQube e RabbitMQ
       - name: Start SonarQube services with Docker Compose
         run: |
-          docker compose up -d sonarqube-db sonarqube rabbitmq
+          docker-compose up -d sonarqube-db sonarqube rabbitmq
 
       # Espera pelo SonarQube estar pronto de forma mais robusta
       - name: Wait for SonarQube to be UP
         run: |
           echo "Waiting for SonarQube to be UP..."
           for i in $(seq 1 120); do
-            # Use docker compose ps para verificar o status do container
-            STATUS=$(docker compose ps sonarqube --format "{{.State}}")
+            # Use docker-compose ps para verificar o status do container
+            STATUS=$(docker-compose ps sonarqube --format "{{.State}}")
             echo "SonarQube container state: $STATUS"
             if [[ "$STATUS" == "running" ]]; then
               # Se o container está rodando, tente a verificação de saúde com curl
-              HEALTHY=$(docker exec ecommerce-sonarqube-1 curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/api/system/status)
+              HEALTHY=$(docker-compose exec sonarqube curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/api/system/status)
               if [[ "$HEALTHY" == "200" ]]; then
                 echo "SonarQube is UP and healthy."
                 break
@@ -121,10 +121,10 @@ jobs:
           /p:CoverletOutput=TestResults/Coverage/
 
       - name: Start Integration Tests services
-        run: docker compose up -d ecommerce-db
+        run: docker-compose up -d ecommerce-db
 
       - name: Run Integration Tests
-        run: docker compose run --rm tests
+        run: docker-compose run --rm tests
 
       - name: SonarQube end analysis
         env:
@@ -149,4 +149,4 @@ jobs:
 
       - name: Cleanup Docker resources
         if: always()
-        run: docker compose down -v
+        run: docker-compose down -v
