@@ -110,6 +110,24 @@ docker compose down -v
 
 ---
 
+# Informações adicionais
+
+- Ajuste de line endings do entrypoint
+  - Se ocorrer erro "/entrypoint.sh: not found" ao subir os containers no Linux/WSL, converta o arquivo Ecommerce.API/entrypoint.sh para final de linha LF (Unix):
+    - VS Code: abra o arquivo, no canto inferior direito selecione CRLF e altere para LF, salve.
+    - Ou via terminal (em ambientes que possuam dos2unix): dos2unix Ecommerce.API/entrypoint.sh
+
+- SonarQube (porta 9000)
+  - Acesse http://localhost:9000
+  - Login padrão: admin
+  - Senha padrão: admin
+  - No primeiro acesso, o SonarQube exige a troca da senha. Defina uma nova senha e guarde em local seguro.
+
+- .env.example
+  - O arquivo .env.example contém variáveis de ambiente para facilitar a configuração local e do docker-compose.
+  - Incluímos uma chave JWT válida para testes: ajuste conforme necessário antes de usar em produção.
+
+
 ### Observações
 
 * Todos os serviços rodam em containers separados, mas podem se comunicar entre si usando os nomes dos serviços definidos no `docker-compose.yml`.
