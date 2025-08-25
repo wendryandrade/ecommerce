@@ -6,20 +6,22 @@ Este guia explica como rodar o projeto **Ecommerce** localmente usando Docker, i
 
 ## Pré-requisitos
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop) (Windows/Mac) ou Docker Engine (Linux)
-- Git
-- .NET 8 SDK (para gerar certificados HTTPS, se desejar)
+* [Docker Desktop](https://www.docker.com/products/docker-desktop) (Windows/Mac) ou Docker Engine (Linux)
+* Git
+* .NET 8 SDK (para gerar certificados HTTPS, se desejar)
 
 ---
 
 ## Passo a passo para rodar o sistema
 
 ### 1. Instalar Docker
+
 Baixe e instale o Docker Desktop (Windows/Mac) ou Docker Engine (Linux).
 
 ---
 
 ### 2. Clonar o repositório
+
 ```bash
 git clone https://github.com/wendryandrade/ecommerce.git
 cd ecommerce
@@ -27,51 +29,81 @@ cd ecommerce
 
 ---
 
-### 3. Rodar os containers
+### 3. Configurar variáveis de ambiente
+
+Antes de buildar os containers, copie o arquivo de exemplo `.env.example` para `.env`:
+
+```bash
+cp .env.example .env
+```
+
+Edite o `.env` para ajustar as integrações externas:
+
+* **Stripe**: altere `STRIPE_SECRETKEY` e `STRIPE_PUBLISHABLEKEY` com suas chaves da conta Stripe.
+* **Melhor Envio**: altere `API_TOKEN` com seu token de acesso da conta Melhor Envio.
+
+> ⚠️ É importante manter o `.env` atualizado com suas chaves para que as integrações funcionem corretamente.
+
+---
+
+### 4. Rodar os containers
+
 Na raiz do projeto, execute:
+
 ```bash
 docker compose up --build -d
 ```
 
 Isso iniciará:
-- **API** (`Ecommerce.API`)
-- **SQL Server**
-- **RabbitMQ**
+
+* **API** (`Ecommerce.API`)
+* **SQL Server**
+* **RabbitMQ**
 
 ---
 
-### 4. Configurar HTTPS (Opcional)
+### 5. Configurar HTTPS (Opcional)
+
 Para habilitar HTTPS no container da API:
 
 1. Crie a pasta `./certs` na raiz do projeto.
 2. Gere um certificado de desenvolvimento:
+
 ```bash
 dotnet dev-certs https -ep ./certs/aspnetapp.pfx -p Pass@word1
 ```
+
 3. Confie no certificado para remover aviso de "não seguro":
+
 ```bash
 dotnet dev-certs https --trust
 ```
+
 4. Recrie os containers para aplicar o certificado:
+
 ```bash
 docker compose up --build -d
 ```
 
 **Notas importantes:**
-- A senha do certificado deve ser a mesma configurada no `entrypoint.sh` (`Pass@word1`).  
-- Em Linux/Mac, use o caminho equivalente (ex.: `~/.aspnet/https`) e adicione manualmente o certificado ao sistema (`update-ca-certificates`).  
-- Sempre reconstrua a imagem após gerar o certificado.
+
+* A senha do certificado deve ser a mesma configurada no `entrypoint.sh` (`Pass@word1`).
+* Em Linux/Mac, use o caminho equivalente (ex.: `~/.aspnet/https`) e adicione manualmente o certificado ao sistema (`update-ca-certificates`).
+* Sempre reconstrua a imagem após gerar o certificado.
 
 ---
 
-### 5. Acessos locais
-- **API (Swagger):** [https://localhost:8081/swagger/index.html](https://localhost:8081/swagger/index.html)  
-- **RabbitMQ:** [http://localhost:15672](http://localhost:15672)  
+### 6. Acessos locais
+
+* **API (Swagger):** [https://localhost:8081/swagger/index.html](https://localhost:8081/swagger/index.html)
+* **RabbitMQ:** [http://localhost:15672](http://localhost:15672)
 
 ---
 
-### 6. Parar e remover containers
+### 7. Parar e remover containers
+
 Para parar os containers e limpar volumes:
+
 ```bash
 docker compose down -v
 ```
@@ -80,12 +112,13 @@ docker compose down -v
 
 ### Observações
 
-- Todos os serviços rodam em containers separados, mas podem se comunicar entre si usando os nomes dos serviços definidos no `docker-compose.yml`.  
-- Se ocorrerem problemas de porta ocupada, ajuste os mapeamentos no `docker-compose.yml`.  
-- A API aplica migrations automaticamente ao iniciar.
+* Todos os serviços rodam em containers separados, mas podem se comunicar entre si usando os nomes dos serviços definidos no `docker-compose.yml`.
+* Se ocorrerem problemas de porta ocupada, ajuste os mapeamentos no `docker-compose.yml`.
+* A API aplica migrations automaticamente ao iniciar.
+* Sempre atualize o `.env` ao alterar chaves de integração ou outras configurações.
 
 ---
 
 ### Contato
-Para dúvidas ou problemas, abra uma issue no repositório ou entre em contato com o desenvolvedor.
 
+Para dúvidas ou problemas, abra uma issue no repositório ou entre em contato com o desenvolvedor.
