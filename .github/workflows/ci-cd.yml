@@ -46,8 +46,6 @@ jobs:
           SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: true
         ports:
           - 9000:9000
-        depends_on:
-          - sonarqube-db
         options: >-
           --health-cmd "curl --fail http://localhost:9000/api/server/version"
           --health-interval 10s
