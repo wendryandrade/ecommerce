@@ -20,77 +20,60 @@ env:
 jobs:
   build-test-scan:
     runs-on: ubuntu-latest
-
-    services:
-      sonarqube-db:
-        image: postgres:15
-        env:
-          POSTGRES_USER: sonar
-          POSTGRES_PASSWORD: sonar
-          POSTGRES_DB: sonar
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --name sonarqube-db
-
-      sonarqube:
-        image: sonarqube:lts-community
-        env:
-          SONARQUBE_JDBC_URL: jdbc:postgresql://sonarqube-db:5432/sonar
-          SONARQUBE_JDBC_USERNAME: sonar
-          SONARQUBE_JDBC_PASSWORD: sonar
-          SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: true
-        ports:
-          - 9000:9000
-        options: >-
-          --health-cmd "curl --fail http://localhost:9000/api/server/version"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --name sonarqube
-
-      rabbitmq:
-        image: rabbitmq:3-management
-        ports:
-          - 5672:5672
-          - 15672:15672
-        env:
-          RABBITMQ_DEFAULT_USER: guest
-          RABBITMQ_DEFAULT_PASS: guest
-        options: >-
-          --health-cmd "rabbitmqctl status"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --name rabbitmq
-
+    
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Setup SonarScanner
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Install SonarScanner and tools
         run: |
           dotnet tool install --global dotnet-sonarscanner
           dotnet tool install --global dotnet-reportgenerator-globaltool
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
-      - name: Start SonarQube Scan
+      - name: Start all services with Docker Compose
+        run: |
+          docker compose -f docker-compose.yml up -d sonarqube-db sonarqube rabbitmq ecommerce-db
+
+      - name: Wait for SonarQube to be UP
+        run: |
+          echo "Waiting for SonarQube to be UP..."
+          for i in {1..120}; do \
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/api/system/status); \
+            echo "SonarQube status code: $STATUS"; \
+            if [ "$STATUS" = "200" ]; then echo "SonarQube is UP"; break; fi; \
+            sleep 5; \
+          done
+
+      - name: SonarQube begin analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          dotnet sonarscanner begin /k:"ecommerce" /n:"Ecommerce" /d:sonar.host.url="http://sonarqube:9000" /d:sonar.login="${{ env.SONAR_TOKEN }}" /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" /d:sonar.coverage.exclusions="**/Migrations/**,**/Resources/**/DTOs/**,**/Resources/**/Requests/**,**/Resources/**/Responses/**,**/Program*.cs" /d:sonar.sourceEncoding="UTF-8"
-
+          dotnet sonarscanner begin \
+            /k:"ecommerce" \
+            /n:"Ecommerce" \
+            /d:sonar.host.url="http://localhost:9000" \
+            /d:sonar.login="${{ env.SONAR_TOKEN }}" \
+            /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
+            /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
+            /d:sonar.coverage.exclusions="**/Migrations/**,**/Resources/**/DTOs/**,**/Resources/**/Requests/**,**/Resources/**/Responses/**,**/Program*.cs" \
+            /d:sonar.sourceEncoding="UTF-8"
+        
       - name: Restore dependencies
         run: dotnet restore ${{ env.SLN_FILE }}
 
@@ -98,28 +81,29 @@ jobs:
         run: dotnet build ${{ env.SLN_FILE }} --configuration Release --no-restore --no-incremental
 
       - name: Run Tests and generate coverage
-        run: dotnet test ${{ env.SLN_FILE }} --no-build --configuration Release --logger "trx;LogFileName=test_results.trx" /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=TestResults/Coverage/
-
-      - name: Start SQL Server for Integration Tests
-        run: docker compose up -d --build ecommerce-db
+        run: >
+          dotnet test ${{ env.SLN_FILE }} --no-build --configuration Release
+          --logger "trx;LogFileName=test_results.trx"
+          /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+          /p:CoverletOutput=TestResults/Coverage/
 
       - name: Run Integration Tests
-        run: docker compose run ecommerce-tests
+        run: docker compose run --rm ecommerce-tests
 
-      - name: End SonarQube Scan and Publish Results
+      - name: SonarQube end analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: dotnet sonarscanner end /d:sonar.login="${{ env.SONAR_TOKEN }}"
 
       - name: Log in to GitHub Packages
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.DOCKER_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: ./${{ env.PROJECT_DIR }}
           push: true
