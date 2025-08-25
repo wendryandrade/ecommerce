@@ -1,0 +1,91 @@
+# Ecommerce - Setup Local com Docker
+
+Este guia explica como rodar o projeto **Ecommerce** localmente usando Docker, incluindo API, banco de dados, RabbitMQ e HTTPS opcional.
+
+---
+
+## Pré-requisitos
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop) (Windows/Mac) ou Docker Engine (Linux)
+- Git
+- .NET 8 SDK (para gerar certificados HTTPS, se desejar)
+
+---
+
+## Passo a passo para rodar o sistema
+
+### 1. Instalar Docker
+Baixe e instale o Docker Desktop (Windows/Mac) ou Docker Engine (Linux).
+
+---
+
+### 2. Clonar o repositório
+```bash
+git clone https://github.com/wendryandrade/ecommerce.git
+cd ecommerce
+```
+
+---
+
+### 3. Rodar os containers
+Na raiz do projeto, execute:
+```bash
+docker compose up --build -d
+```
+
+Isso iniciará:
+- **API** (`Ecommerce.API`)
+- **SQL Server**
+- **RabbitMQ**
+
+---
+
+### 4. Configurar HTTPS (Opcional)
+Para habilitar HTTPS no container da API:
+
+1. Crie a pasta `./certs` na raiz do projeto.
+2. Gere um certificado de desenvolvimento:
+```bash
+dotnet dev-certs https -ep ./certs/aspnetapp.pfx -p Pass@word1
+```
+3. Confie no certificado para remover aviso de "não seguro":
+```bash
+dotnet dev-certs https --trust
+```
+4. Recrie os containers para aplicar o certificado:
+```bash
+docker compose up --build -d
+```
+
+**Notas importantes:**
+- A senha do certificado deve ser a mesma configurada no `entrypoint.sh` (`Pass@word1`).  
+- Em Linux/Mac, use o caminho equivalente (ex.: `~/.aspnet/https`) e adicione manualmente o certificado ao sistema (`update-ca-certificates`).  
+- Sempre reconstrua a imagem após gerar o certificado.
+
+---
+
+### 5. Acessos locais
+- **API (Swagger):** [https://localhost:8081/swagger/index.html](https://localhost:8081/swagger/index.html)  
+- **RabbitMQ:** [http://localhost:15672](http://localhost:15672)  
+
+---
+
+### 6. Parar e remover containers
+Para parar os containers e limpar volumes:
+```bash
+docker compose down -v
+```
+
+---
+
+### Observações
+
+- Todos os serviços rodam em containers separados, mas podem se comunicar entre si usando os nomes dos serviços definidos no `docker-compose.yml`.  
+- Se ocorrerem problemas de porta ocupada, ajuste os mapeamentos no `docker-compose.yml`.  
+- A API aplica migrations automaticamente ao iniciar.
+
+---
+
+### Contato
+Para dúvidas ou problemas, abra uma issue no repositório ou entre em contato com o desenvolvedor.
+
