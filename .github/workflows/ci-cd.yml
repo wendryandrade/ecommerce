@@ -1,0 +1,119 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  PROJECT_DIR: 'Ecommerce.API'
+  SLN_FILE: 'Ecommerce.sln'
+  DOCKER_IMAGE_NAME: wendryandrade/ecommerce-api
+  DOCKER_REGISTRY: ghcr.io
+
+jobs:
+  build-test-scan:
+    runs-on: ubuntu-latest
+
+    # Definição dos serviços que não precisam de um contêiner separado para serem iniciados por 'docker-compose'
+    services:
+      sonarqube-db:
+        image: postgres:15
+        env:
+          POSTGRES_USER: sonar
+          POSTGRES_PASSWORD: sonar
+          POSTGRES_DB: sonar
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --name sonarqube-db
+
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - 5672:5672
+          - 15672:15672
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        options: >-
+          --health-cmd rabbitmqctl status
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --name rabbitmq
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup SonarScanner
+        run: |
+          dotnet tool install --global dotnet-sonarscanner
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+
+      - name: Start SonarQube Scan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dotnet sonarscanner begin /k:"my-ecommerce-project" \
+            /o:"wendryandrade-org" \
+            /d:sonar.host.url="http://localhost:9000" \
+            /d:sonar.login="${{ secrets.SONAR_TOKEN }}" \
+            /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
+            /d:sonar.exclusions="**/*.sln,**/*.csproj,**/bin/**,**/obj/**,**/Migrations/**" \
+            /d:sonar.scm.disabled="true"
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SLN_FILE }}
+
+      - name: Build projects
+        run: dotnet build ${{ env.SLN_FILE }} --no-restore
+
+      - name: Run Unit Tests and generate coverage
+        run: dotnet test ${{ env.SLN_FILE }} --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory "TestResults" /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput=./TestResults/coverage.opencover.xml
+
+      - name: Start SQL Server and other containers for Integration Tests
+        run: docker-compose up -d --build ecommerce-db
+
+      - name: Run Integration Tests
+        run: docker-compose run ecommerce-tests
+
+      - name: End SonarQube Scan and Publish Results
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
+
+      - name: Log in to GitHub Packages
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./${{ env.PROJECT_DIR }}
+          push: true
+          tags: |
+            ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/${{ env.DOCKER_IMAGE_NAME }}:latest
