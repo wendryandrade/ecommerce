@@ -2,22 +2,20 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main
-      - develop
+    branches: [main, develop]
   pull_request:
-    branches:
-      - main
-      - develop
+    branches: [main, develop]
 
 env:
   DOTNET_VERSION: '8.0.x'
   SLN_FILE: 'Ecommerce.sln'
+  DOCKER_IMAGE_NAME: ecommerce-api
+  DOCKER_REGISTRY: ghcr.io
 
 jobs:
   build-test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -55,10 +53,11 @@ jobs:
       - name: Start services with Docker Compose
         run: docker compose up --build -d
 
-      - name: Build and Test
-        run: |
-          dotnet build ${{ env.SLN_FILE }} --configuration Release --no-incremental
+      - name: Build API
+        run: dotnet build ${{ env.SLN_FILE }} --configuration Release --no-incremental
 
+      - name: Run Tests and Coverage
+        run: |
           dotnet test ${{ env.SLN_FILE }} \
             --no-build \
             --configuration Release \
@@ -78,13 +77,12 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: docker compose down
+        run: docker compose down -v
 
-  # SonarQube analysis - opcional
   sonarqube-analysis:
     needs: build-test
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -99,58 +97,18 @@ jobs:
           dotnet tool install --global dotnet-sonarscanner
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
-      - name: Create .env file
-        run: |
-          cat > .env << EOF
-          DB_PASS=Your_password123!
-          JWT_KEY=${{ secrets.JWT_KEY }}
-          JWT_ISSUER=${{ secrets.JWT_ISSUER }}
-                     JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
-           STRIPE_SECRETKEY=${{ secrets.STRIPE_SECRETKEY }}
-          STRIPE_PUBLISHABLEKEY=${{ secrets.STRIPE_PUBLISHABLEKEY }}
-          API_URL=${{ secrets.API_URL }}
-          API_TOKEN=${{ secrets.API_TOKEN }}
-          DEFAULT_ORIGIN_ZIPCODE=01001000
-          SERVICES=1,2,18
-          USE_MOCK_DATA=false
-          DEFAULT_PACKAGE_WIDTH=10
-          DEFAULT_PACKAGE_HEIGHT=10
-          DEFAULT_PACKAGE_LENGTH=10
-          DEFAULT_PACKAGE_WEIGHT=1
-          DEFAULT_INSURANCE_VALUE=0
-          DB_HOST=ecommerce-db
-          DB_NAME=EcommerceDB
-          DB_USER=sa
-          DB_PORT=1433
-          EOF
-
       - name: Start SonarQube
         run: docker compose up -d sonarqube-db sonarqube
 
       - name: Wait for SonarQube
         run: |
-          echo "Waiting for SonarQube to be ready..."
-          timeout 300 bash -c 'until curl -s http://localhost:9000/api/system/status | grep -q "UP"; do sleep 5; done'
-          echo "SonarQube is ready!"
+          echo "Waiting for SonarQube..."
+          timeout 600 bash -c 'until curl -s http://localhost:9000/api/system/status | grep -q "UP"; do sleep 5; done'
 
       - name: SonarQube analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          # Verifica se o token está disponível
-          if [ -z "$SONAR_TOKEN" ]; then
-            echo "SONAR_TOKEN não está configurado. Pulando análise SonarQube."
-            exit 0
-          fi
-          
-          # Testa conexão com SonarQube
-          echo "Testando conexão com SonarQube..."
-          if ! curl -s http://localhost:9000/api/system/status | grep -q "UP"; then
-            echo "SonarQube não está acessível. Pulando análise."
-            exit 0
-          fi
-          
-          echo "Iniciando análise SonarQube..."
           dotnet sonarscanner begin \
             /k:"ecommerce" \
             /n:"Ecommerce" \
@@ -161,27 +119,17 @@ jobs:
             /d:sonar.coverage.exclusions="**/Migrations/**,**/Resources/**/DTOs/**,**/Resources/**/Requests/**,**/Resources/**/Responses/**,**/Program*.cs" \
             /d:sonar.sourceEncoding="UTF-8"
 
-          dotnet build ${{ env.SLN_FILE }} --configuration Release --no-incremental
-
-          dotnet test ${{ env.SLN_FILE }} \
-            --no-build \
-            --configuration Release \
-            --logger "trx;LogFileName=test_results.trx" \
-            /p:CollectCoverage=true \
-            /p:CoverletOutputFormat=opencover \
-            /p:CoverletOutput=TestResults/Coverage/
-
           dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"
 
       - name: Cleanup SonarQube
         if: always()
-        run: docker compose down
+        run: docker compose down -v
 
   docker-build:
     needs: build-test
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
-    
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
