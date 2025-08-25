@@ -72,7 +72,7 @@ jobs:
       # Inicia os serviços com Docker Compose, incluindo SonarQube e RabbitMQ
       - name: Start SonarQube services with Docker Compose
         run: |
-          docker-compose up -d sonarqube-db sonarqube rabbitmq
+          docker-compose up --build -d 
 
       # Espera pelo SonarQube estar pronto de forma mais robusta
       - name: Wait for SonarQube to be UP
