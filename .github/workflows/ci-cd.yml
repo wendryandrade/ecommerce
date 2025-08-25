@@ -45,11 +45,13 @@ jobs:
           dotnet tool install --global dotnet-sonarscanner
           dotnet tool install --global dotnet-reportgenerator-globaltool
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-
-      - name: Start all services with Docker Compose
+      
+      # Inicia os serviços com Docker Compose, incluindo SonarQube e RabbitMQ
+      - name: Start services with Docker Compose
         run: |
-          docker compose -f docker-compose.yml up -d sonarqube-db sonarqube rabbitmq ecommerce-db
+          docker compose up -d sonarqube-db sonarqube rabbitmq
 
+      # Espera pelo SonarQube estar pronto para evitar "Connection refused"
       - name: Wait for SonarQube to be UP
         run: |
           echo "Waiting for SonarQube to be UP..."
@@ -59,7 +61,7 @@ jobs:
             if [ "$STATUS" = "200" ]; then echo "SonarQube is UP"; break; fi; \
             sleep 5; \
           done
-
+          
       - name: SonarQube begin analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -87,8 +89,11 @@ jobs:
           /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
           /p:CoverletOutput=TestResults/Coverage/
 
+      - name: Start Integration Tests services
+        run: docker compose up -d ecommerce-db
+
       - name: Run Integration Tests
-        run: docker compose run --rm ecommerce-tests
+        run: docker compose run --rm tests
 
       - name: SonarQube end analysis
         env:
