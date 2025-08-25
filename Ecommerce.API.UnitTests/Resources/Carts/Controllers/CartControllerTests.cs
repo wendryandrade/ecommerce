@@ -108,7 +108,7 @@ namespace Ecommerce.API.UnitTests.Resources.Carts.Controllers
 				.ReturnsAsync(false);
 
 			var result = await _controller.RemoveItem(Guid.NewGuid());
-			Assert.IsType<NotFoundResult>(result);
+			Assert.IsType<NotFoundObjectResult>(result);
 		}
 
 		[Fact]
@@ -128,7 +128,7 @@ namespace Ecommerce.API.UnitTests.Resources.Carts.Controllers
 				.ReturnsAsync(false);
 
 			var result = await _controller.DecreaseQuantity(Guid.NewGuid());
-			Assert.IsType<NotFoundResult>(result);
+			Assert.IsType<NotFoundObjectResult>(result);
 		}
 
 		[Fact]

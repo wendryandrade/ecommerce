@@ -31,14 +31,30 @@ namespace Ecommerce.Infrastructure.Persistence.Repositories
 
         public async Task UpdateAsync(Cart cart)
         {
-            // Marca apenas o Cart como modificado
+            // Garante que o Cart está sendo rastreado como modificado
             _context.Entry(cart).State = EntityState.Modified;
 
-            // Marca os itens do carrinho como 'Added' se forem novos
+            // Carrega itens atuais do banco para detectar remoções
+            var existingItems = await _context.CartItems
+                .Where(ci => ci.CartId == cart.Id)
+                .ToListAsync();
+
+            // Itens removidos (existem no banco, mas não estão na lista atual do carrinho)
+            var removedItems = existingItems
+                .Where(dbItem => !cart.CartItems.Any(ci => ci.Id == dbItem.Id))
+                .ToList();
+            if (removedItems.Count > 0)
+            {
+                _context.CartItems.RemoveRange(removedItems);
+            }
+
+            // Marca os itens do carrinho como 'Added' se forem novos ou 'Modified' se já existirem
             foreach (var item in cart.CartItems)
             {
-                if (!_context.CartItems.Any(ci => ci.Id == item.Id))
+                if (item.Id == Guid.Empty || !existingItems.Any(ci => ci.Id == item.Id))
                 {
+                    // Garante que o CartId está correto ao adicionar novo item
+                    item.CartId = cart.Id;
                     _context.Entry(item).State = EntityState.Added;
                 }
                 else
@@ -52,10 +68,14 @@ namespace Ecommerce.Infrastructure.Persistence.Repositories
 
         public async Task DeleteAsync(Guid userId, Guid productId)
         {
-            var cart = await GetByUserIdAsync(userId);
+            // Remove o item específico do carrinho do usuário no banco
+            var cart = await _context.Carts.AsNoTracking().FirstOrDefaultAsync(c => c.UserId == userId);
             if (cart == null) return;
 
-            cart.RemoveItem(productId);
+            var item = await _context.CartItems.FirstOrDefaultAsync(ci => ci.CartId == cart.Id && ci.ProductId == productId);
+            if (item == null) return;
+
+            _context.CartItems.Remove(item);
             await _context.SaveChangesAsync();
         }
     }

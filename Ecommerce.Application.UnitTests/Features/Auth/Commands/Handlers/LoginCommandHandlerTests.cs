@@ -36,7 +36,8 @@ namespace Ecommerce.Application.UnitTests.Features.Auth.Commands.Handlers
         {
             // Arrange
             var password = "Password123!";
-            var salt = new byte[16]; // Usamos um salt fixo para o teste ser determinístico
+            // Usamos um salt determinístico mas não totalmente previsível para o teste
+            var salt = new byte[16] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
             var command = new LoginCommand { Email = "teste@email.com", Password = password };
             var passwordHash = GenerateValidPasswordHash(password, salt);
             var userFromRepo = new User { Id = Guid.NewGuid(), Email = command.Email, PasswordHash = passwordHash, Role = "Customer" };
@@ -72,7 +73,8 @@ namespace Ecommerce.Application.UnitTests.Features.Auth.Commands.Handlers
             // Arrange
             var correctPassword = "Password123!";
             var incorrectPassword = "senha_errada";
-            var salt = new byte[16];
+            // Usamos um salt determinístico mas não totalmente previsível para o teste
+            var salt = new byte[16] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
             var command = new LoginCommand { Email = "teste@email.com", Password = incorrectPassword };
 
             // Geramos um hash com a senha CORRETA para simular o que está no "banco"

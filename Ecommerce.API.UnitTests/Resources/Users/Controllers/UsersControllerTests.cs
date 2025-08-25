@@ -28,7 +28,7 @@ namespace Ecommerce.API.UnitTests.Resources.Users.Controllers
 		{
 			_mockMediator.Setup(m => m.Send(It.IsAny<GetUserByIdQuery>(), It.IsAny<CancellationToken>())).ReturnsAsync((UserDto?)null);
 			var result = await _controller.GetById(Guid.NewGuid());
-			Assert.IsType<NotFoundResult>(result);
+			Assert.IsType<NotFoundObjectResult>(result);
 		}
 
 		[Fact]
@@ -47,7 +47,7 @@ namespace Ecommerce.API.UnitTests.Resources.Users.Controllers
 		{
 			_mockMediator.Setup(m => m.Send(It.IsAny<GetUserByEmailQuery>(), It.IsAny<CancellationToken>())).ReturnsAsync((UserDto?)null);
 			var result = await _controller.GetByEmail("x@y.com");
-			Assert.IsType<NotFoundResult>(result);
+			Assert.IsType<NotFoundObjectResult>(result);
 		}
 
 		[Fact]

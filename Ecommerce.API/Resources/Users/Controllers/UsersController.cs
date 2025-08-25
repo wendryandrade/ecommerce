@@ -5,11 +5,12 @@ using Ecommerce.Application.Features.Users.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Ecommerce.API.Common;
 
 namespace Ecommerce.API.Resources.Users.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/users")]
     [Authorize]
     public class UsersController : ControllerBase
     {
@@ -20,8 +21,8 @@ namespace Ecommerce.API.Resources.Users.Controllers
             _mediator = mediator;
         }
 
-        // GET api/users/{id}
-        [HttpGet("{id}")]
+        // Rota nomeada para CreatedAtRoute em AuthController.Register
+        [HttpGet("{id}", Name = "GetUserById")]
         public async Task<IActionResult> GetById(Guid id)
         {
             var query = new GetUserByIdQuery { Id = id };
@@ -29,10 +30,14 @@ namespace Ecommerce.API.Resources.Users.Controllers
 
             if (userDto == null)
             {
-                return NotFound();
+                return NotFound(new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Not found",
+                    Detail = "Usuário não encontrado."
+                });
             }
 
-            // Mapeia o DTO da Application para o Response da API
             var response = new UserResponse
             {
                 Id = userDto.Id,
@@ -41,6 +46,7 @@ namespace Ecommerce.API.Resources.Users.Controllers
                 Email = userDto.Email
             };
 
+            Response.AddSuccessMessage("Usuario recuperado com sucesso.");
             return Ok(response);
         }
 
@@ -53,10 +59,14 @@ namespace Ecommerce.API.Resources.Users.Controllers
 
             if (userDto == null)
             {
-                return NotFound();
+                return NotFound(new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Not found",
+                    Detail = "Usuário não encontrado."
+                });
             }
 
-            // Mapeia o DTO da Application para o Response da API
             var response = new UserResponse
             {
                 Id = userDto.Id,
@@ -65,6 +75,7 @@ namespace Ecommerce.API.Resources.Users.Controllers
                 Email = userDto.Email
             };
 
+            Response.AddSuccessMessage("Usuario recuperado com sucesso.");
             return Ok(response);
         }
 
@@ -84,6 +95,7 @@ namespace Ecommerce.API.Resources.Users.Controllers
                 Email = dto.Email
             }).ToList();
 
+            Response.AddSuccessMessage("Usuarios recuperados com sucesso.");
             return Ok(response);
         }
     }

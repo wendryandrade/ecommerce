@@ -1,15 +1,16 @@
-﻿using Ecommerce.API.Resources.Auth.DTOs.Responses;
+﻿using Ecommerce.API.Resources.Auth.DTOs.Requests;
+using Ecommerce.API.Resources.Auth.DTOs.Responses;
 using Ecommerce.API.Resources.Users.DTOs.Requests;
 using Ecommerce.Application.Features.Auth.Commands;
 using Ecommerce.Application.Features.Users.Commands;
 using MediatR;
-using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
+using Ecommerce.API.Common;
 
 namespace Ecommerce.API.Resources.Auth.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")] 
+    [Route("api/auth")] 
     public class AuthController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -35,11 +36,17 @@ namespace Ecommerce.API.Resources.Auth.Controllers
 
                 var userId = await _mediator.Send(command);
 
-                return Ok(new { UserId = userId });
+                Response.AddSuccessMessage("Usuario registrado com sucesso.");
+                return CreatedAtRoute("GetUserById", new { id = userId }, new { id = userId });
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Invalid operation",
+                    Detail = ex.Message
+                });
             }
         }
 
@@ -52,10 +59,16 @@ namespace Ecommerce.API.Resources.Auth.Controllers
 
             if (token == null)
             {
-                return Unauthorized("E-mail ou senha inválidos.");
+                return Unauthorized(new ProblemDetails
+                {
+                    Status = StatusCodes.Status401Unauthorized,
+                    Title = "Invalid credentials",
+                    Detail = "E-mail ou senha inválidos."
+                });
             }
 
-            return Ok(new LoginResponse { Token = token }); // Retornando o DTO de Response
+            Response.AddSuccessMessage("Login realizado com sucesso.");
+            return Ok(new LoginResponse { Token = token });
         }
     }
 }

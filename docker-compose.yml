@@ -9,9 +9,12 @@ services:
       dockerfile: Ecommerce.API/Dockerfile
     ports:
       - "8080:80"
+      - "8081:443"
     depends_on:
       - ecommerce-db
       - rabbitmq
+    env_file:
+      - .env
     environment:
       - DB_HOST=ecommerce-db
       - DB_PORT=1433
@@ -24,12 +27,17 @@ services:
       - ASPNETCORE_ENVIRONMENT=Docker
       - ASPNETCORE_URLS=http://0.0.0.0:80
       - ConnectionStrings__DefaultConnection=Server=ecommerce-db,1433;Database=EcommerceDB;User ID=sa;Password=${DB_PASS};TrustServerCertificate=True
+    volumes:
+      - "${USERPROFILE}/.aspnet/https:/https:ro"
+      - ./certs:/https:ro
 
   # SQL Server
   ecommerce-db:
     image: "mcr.microsoft.com/mssql/server:2022-latest"
     ports:
       - "1433:1433"
+    env_file:
+      - .env
     environment:
       - ACCEPT_EULA=Y
       - SA_PASSWORD=${DB_PASS:-Your_password123!}
@@ -40,6 +48,8 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    env_file:
+      - .env
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
@@ -48,6 +58,8 @@ services:
   ecommerce-tests:
     image: mcr.microsoft.com/dotnet/sdk:8.0
     working_dir: /src
+    env_file:
+      - .env
     volumes:
       - ./:/src                       # monta o código
       - ./TestResults:/src/TestResults # onde os resultados vão
@@ -65,6 +77,8 @@ services:
   # Banco de dados do SonarQube (PostgreSQL)
   sonarqube-db:
     image: postgres:15
+    env_file:
+      - .env
     environment:
       - POSTGRES_USER=sonar
       - POSTGRES_PASSWORD=sonar
@@ -75,6 +89,8 @@ services:
   # Servidor SonarQube
   sonarqube:
     image: sonarqube:lts-community
+    env_file:
+      - .env
     ports:
       - "9000:9000"
     depends_on:

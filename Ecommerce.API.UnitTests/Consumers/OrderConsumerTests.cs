@@ -1,7 +1,6 @@
 ﻿using Ecommerce.API.Consumers;
 using Ecommerce.Application.Features.Orders.Events;
 using Ecommerce.Application.Interfaces;
-using Ecommerce.Application.Interfaces.Infrastructure;
 using Ecommerce.Domain.Entities;
 using MassTransit;
 using Microsoft.Extensions.Logging;
@@ -48,7 +47,7 @@ namespace Ecommerce.API.UnitTests.Consumers
             };
 
             _mockProductRepository.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync(new Product { StockQuantity = 10 });
-            _mockShippingService.Setup(s => s.CalculateShippingCostAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(20.0m);
+            _mockShippingService.Setup(s => s.CalculateShippingCostFromStoreAsync(It.IsAny<string>())).ReturnsAsync(20.0m);
             _mockPaymentService.Setup(p => p.ProcessPaymentAsync(It.IsAny<decimal>(), "brl", It.IsAny<string>())).ReturnsAsync("pi_mock_123");
 
             var consumeContext = new Mock<ConsumeContext<OrderSubmissionEvent>>();
@@ -58,9 +57,8 @@ namespace Ecommerce.API.UnitTests.Consumers
             await _consumer.Consume(consumeContext.Object);
 
             // Assert
-            // Verifica se a lógica principal (salvar o pedido) foi chamada.
             _mockOrderRepository.Verify(r => r.AddAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()), Times.Once);
-            _mockProductRepository.Verify(r => r.UpdateAsync(It.IsAny<Product>()), Times.Once); // Verifica a baixa de estoque
+            _mockProductRepository.Verify(r => r.UpdateAsync(It.IsAny<Product>()), Times.Once);
         }
     }
 }

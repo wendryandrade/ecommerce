@@ -7,11 +7,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Ecommerce.API.Common;
 
 namespace Ecommerce.API.Resources.Carts.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/cart")]
     [Authorize]
     public class CartController : ControllerBase
     {
@@ -22,7 +23,6 @@ namespace Ecommerce.API.Resources.Carts.Controllers
             _mediator = mediator;
         }
 
-        // Método privado para obter o ID do usuário autenticado
         private Guid GetUserIdFromToken()
         {
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
@@ -34,7 +34,6 @@ namespace Ecommerce.API.Resources.Carts.Controllers
             return userId;
         }
 
-        // POST: api/cart/items
         [HttpPost("items")]
         public async Task<IActionResult> AddItem([FromBody] AddCartItemRequest request)
         {
@@ -47,19 +46,28 @@ namespace Ecommerce.API.Resources.Carts.Controllers
             };
 
             var success = await _mediator.Send(command);
-            if (!success) return BadRequest("Produto não encontrado ou quantidade inválida.");
+            if (!success)
+                return BadRequest(new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Invalid request",
+                    Detail = "Produto não encontrado ou quantidade inválida."
+                });
 
+            Response.AddSuccessMessage("Item adicionado ao carrinho com sucesso.");
             return Ok();
         }
 
-        // GET: api/cart
         [HttpGet]
         public async Task<ActionResult<CartResponse>> GetMyCart()
         {
             var userId = GetUserIdFromToken();
             var cart = await _mediator.Send(new GetCartByUserIdQuery(userId));
             if (cart == null)
+            {
+                Response.AddSuccessMessage("Carrinho recuperado com sucesso.");
                 return Ok(new CartResponse { UserId = userId, Items = new List<CartItemResponse>() });
+            }
 
             var response = new CartResponse
             {
@@ -73,10 +81,10 @@ namespace Ecommerce.API.Resources.Carts.Controllers
                 }).ToList()
             };
 
+            Response.AddSuccessMessage("Carrinho recuperado com sucesso.");
             return Ok(response);
         }
 
-        // DELETE: api/cart/items/{productId}
         [HttpDelete("items/{productId}")]
         public async Task<IActionResult> RemoveItem(Guid productId)
         {
@@ -85,12 +93,17 @@ namespace Ecommerce.API.Resources.Carts.Controllers
             var result = await _mediator.Send(command);
 
             if (!result)
-                return NotFound();
+                return NotFound(new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Not found",
+                    Detail = "Item não encontrado no carrinho."
+                });
 
+            Response.AddSuccessMessage("Item removido do carrinho com sucesso.");
             return NoContent();
         }
 
-        // PATCH: api/cart/items/{productId}/decrease-quantity
         [HttpPatch("items/{productId}/decrease-quantity")]
         public async Task<IActionResult> DecreaseQuantity(Guid productId)
         {
@@ -102,8 +115,14 @@ namespace Ecommerce.API.Resources.Carts.Controllers
             });
 
             if (!result)
-                return NotFound();
+                return NotFound(new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Not found",
+                    Detail = "Item não encontrado no carrinho."
+                });
 
+            Response.AddSuccessMessage("Quantidade do item reduzida com sucesso.");
             return NoContent();
         }
     }                       

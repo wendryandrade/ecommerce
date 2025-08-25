@@ -1,6 +1,5 @@
 ﻿using Ecommerce.API.Consumers;
 using Ecommerce.Application.Interfaces;
-using Ecommerce.Application.Interfaces.Infrastructure;
 using Ecommerce.Domain.Entities;
 using Ecommerce.Infrastructure.Persistence.Context;
 using MassTransit;

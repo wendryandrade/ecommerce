@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Ecommerce.API.Controllers;
 using Ecommerce.API.Resources.Products.DTOs.Requests;
 using Ecommerce.Application.Products.Dtos;
 using Ecommerce.Application.Products.Commands;
@@ -12,6 +6,7 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
+using Ecommerce.API.Resources.Products.Controllers;
 
 namespace Ecommerce.API.UnitTests.Resources.Products.Controllers
 {
@@ -34,9 +29,10 @@ namespace Ecommerce.API.UnitTests.Resources.Products.Controllers
 			};
 			_mockMediator.Setup(m => m.Send(It.IsAny<GetAllProductsQuery>(), It.IsAny<CancellationToken>())).ReturnsAsync(dtos);
 
-			var result = await _controller.Get();
-			var ok = Assert.IsType<OkObjectResult>(result.Result);
-			var payload = Assert.IsType<List<Ecommerce.API.Resources.Products.DTOs.Responses.ProductResponse>>(ok.Value);
+			var result = await _controller.GetAll();
+			var ok = Assert.IsType<OkObjectResult>(result);
+			var payloadEnumerable = Assert.IsAssignableFrom<IEnumerable<Ecommerce.API.Resources.Products.DTOs.Responses.ProductResponse>>(ok.Value);
+			var payload = payloadEnumerable.ToList();
 			Assert.Single(payload);
 			Assert.Equal(dtos[0].Name, payload[0].Name);
 		}
@@ -46,7 +42,7 @@ namespace Ecommerce.API.UnitTests.Resources.Products.Controllers
 		{
 			_mockMediator.Setup(m => m.Send(It.IsAny<GetProductByIdQuery>(), It.IsAny<CancellationToken>())).ReturnsAsync((ProductDto?)null);
 			var result = await _controller.GetById(Guid.NewGuid());
-			Assert.IsType<NotFoundResult>(result);
+			Assert.IsType<NotFoundObjectResult>(result);
 		}
 
 		[Fact]
@@ -84,17 +80,17 @@ namespace Ecommerce.API.UnitTests.Resources.Products.Controllers
 			_mockMediator.Setup(m => m.Send(It.IsAny<UpdateProductCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync((ProductDto?)null);
 			var req = new UpdateProductRequest { Id = id, Name = "N", Description = "D", Price = 1m, StockQuantity = 1, CategoryId = Guid.NewGuid() };
 			var result = await _controller.Update(id, req);
-			Assert.IsType<NotFoundResult>(result);
+			Assert.IsType<NotFoundObjectResult>(result);
 		}
 
 		[Fact]
-		public async Task Update_ShouldReturnOk_WhenUpdated()
+		public async Task Update_ShouldReturnNoContent_WhenUpdated()
 		{
 			var dto = new ProductDto { Id = Guid.NewGuid(), Name = "N" };
 			_mockMediator.Setup(m => m.Send(It.IsAny<UpdateProductCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync(dto);
 			var req = new UpdateProductRequest { Id = dto.Id, Name = "N" };
 			var result = await _controller.Update(dto.Id, req);
-			Assert.IsType<OkObjectResult>(result);
+			Assert.IsType<NoContentResult>(result);
 		}
 
 		[Fact]
@@ -110,7 +106,7 @@ namespace Ecommerce.API.UnitTests.Resources.Products.Controllers
 		{
 			_mockMediator.Setup(m => m.Send(It.IsAny<DeleteProductCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
 			var result = await _controller.Delete(Guid.NewGuid());
-			Assert.IsType<NotFoundResult>(result);
+			Assert.IsType<NotFoundObjectResult>(result);
 		}
 	}
 }

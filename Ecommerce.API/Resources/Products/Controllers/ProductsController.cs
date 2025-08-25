@@ -5,11 +5,12 @@ using Ecommerce.Application.Products.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Ecommerce.API.Common;
 
-namespace Ecommerce.API.Controllers
+namespace Ecommerce.API.Resources.Products.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/products")]
     public class ProductsController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -19,12 +20,10 @@ namespace Ecommerce.API.Controllers
             _mediator = mediator;
         }
 
-        // GET api/products
         [HttpGet]
-        public async Task<ActionResult<List<ProductResponse>>> Get()
+        public async Task<IActionResult> GetAll()
         {
             var products = await _mediator.Send(new GetAllProductsQuery());
-
             var response = products.Select(p => new ProductResponse
             {
                 Id = p.Id,
@@ -33,32 +32,26 @@ namespace Ecommerce.API.Controllers
                 Price = p.Price,
                 StockQuantity = p.StockQuantity,
                 CategoryName = p.CategoryName
-            }).ToList();
-
+            });
+            Response.AddSuccessMessage("Produtos recuperados com sucesso.");
             return Ok(response);
         }
 
-        // GET api/products/{id}
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
             var product = await _mediator.Send(new GetProductByIdQuery(id));
-            if (product == null) return NotFound();
-
-            var response = new ProductResponse
-            {
-                Id = product.Id,
-                Name = product.Name,
-                Description = product.Description,
-                Price = product.Price,
-                StockQuantity = product.StockQuantity,
-                CategoryName = product.CategoryName
-            };
-
-            return Ok(response);
+            if (product == null)
+                return NotFound(new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Not found",
+                    Detail = "Produto não encontrado."
+                });
+            Response.AddSuccessMessage("Produto recuperado com sucesso.");
+            return Ok(product);
         }
 
-        // POST api/products - Protegido para Admin
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] CreateProductRequest request)
@@ -73,16 +66,21 @@ namespace Ecommerce.API.Controllers
             };
 
             var productId = await _mediator.Send(command);
-            return CreatedAtAction(nameof(GetById), new { id = productId }, null);
+            Response.AddSuccessMessage("Produto criado com sucesso.");
+            return CreatedAtAction(nameof(GetById), new { id = productId }, new { id = productId });
         }
 
-        // PUT api/products/{id} - Protegido para Admin
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductRequest request)
         {
             if (id != request.Id)
-                return BadRequest("ID do corpo e da URL não coincidem");
+                return BadRequest(new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Invalid request",
+                    Detail = "ID do corpo e da URL não coincidem."
+                });
 
             var command = new UpdateProductCommand
             {
@@ -95,29 +93,32 @@ namespace Ecommerce.API.Controllers
             };
 
             var result = await _mediator.Send(command);
-            if (result == null) return NotFound();
+            if (result == null)
+                return NotFound(new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Not found",
+                    Detail = "Produto não encontrado."
+                });
 
-            var response = new ProductResponse
-            {
-                Id = result.Id,
-                Name = result.Name,
-                Description = result.Description,
-                Price = result.Price,
-                StockQuantity = result.StockQuantity,
-                CategoryName = result.CategoryName
-            };
-
-            return Ok(response);
+            Response.AddSuccessMessage("Produto atualizado com sucesso.");
+            return NoContent();
         }
 
-        // DELETE api/products/{id} - Protegido para Admin
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var success = await _mediator.Send(new DeleteProductCommand(id));
-            if (!success) return NotFound();
+            if (!success)
+                return NotFound(new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Not found",
+                    Detail = "Produto não encontrado."
+                });
 
+            Response.AddSuccessMessage("Produto deletado com sucesso.");
             return NoContent();
         }
     }

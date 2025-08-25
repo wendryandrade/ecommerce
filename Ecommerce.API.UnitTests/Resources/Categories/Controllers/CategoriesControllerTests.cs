@@ -45,7 +45,7 @@ namespace Ecommerce.API.UnitTests.Resources.Categories.Controllers
 		{
 			_mockMediator.Setup(m => m.Send(It.IsAny<GetCategoryByIdQuery>(), It.IsAny<CancellationToken>())).ReturnsAsync((CategoryDto?)null);
 			var result = await _controller.GetById(Guid.NewGuid());
-			Assert.IsType<NotFoundResult>(result);
+			Assert.IsType<NotFoundObjectResult>(result);
 		}
 
 		[Fact]
@@ -82,7 +82,7 @@ namespace Ecommerce.API.UnitTests.Resources.Categories.Controllers
 			_mockMediator.Setup(m => m.Send(It.IsAny<UpdateCategoryCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
 			var req = new CategoryRequest { Name = "N", Description = "D" };
 			var result = await _controller.Update(Guid.NewGuid(), req);
-			Assert.IsType<NotFoundResult>(result);
+			Assert.IsType<NotFoundObjectResult>(result);
 		}
 
 		[Fact]
@@ -98,7 +98,7 @@ namespace Ecommerce.API.UnitTests.Resources.Categories.Controllers
 		{
 			_mockMediator.Setup(m => m.Send(It.IsAny<DeleteCategoryCommand>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
 			var result = await _controller.Delete(Guid.NewGuid());
-			Assert.IsType<NotFoundResult>(result);
+			Assert.IsType<NotFoundObjectResult>(result);
 		}
 
 		[Fact]
@@ -113,6 +113,8 @@ namespace Ecommerce.API.UnitTests.Resources.Categories.Controllers
 		}
 	}
 }
+
+
 
 
 

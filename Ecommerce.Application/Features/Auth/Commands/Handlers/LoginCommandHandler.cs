@@ -24,23 +24,53 @@ namespace Ecommerce.Application.Features.Auth.Commands.Handlers
                 return null; // Usuário não encontrado
             }
 
-            // Verificar a senha (usando a mesma lógica do hash nativo)
-            byte[] hashBytes = Convert.FromBase64String(user.PasswordHash);
-            byte[] salt = new byte[16];
-            Array.Copy(hashBytes, 0, salt, 0, 16);
-
-            // Sonar S2053: o salt deve ser imprevisível no momento da geração do hash.
-            // Aqui apenas REUTILIZAMOS o salt já armazenado no hash do usuário para verificar a senha.
-            // Justificativa: esta rotina NÃO gera novos hashes; apenas valida credenciais.
-            var pbkdf2 = new Rfc2898DeriveBytes(request.Password, salt, 10000, HashAlgorithmName.SHA256); // NOSONAR: Using salt extracted from stored hash for verification, not generating a new hash
-            byte[] hash = pbkdf2.GetBytes(20);
-
-            for (int i = 0; i < 20; i++)
+            // Verificar a senha usando PBKDF2 (mesma lógica do CreateUserCommandHandler)
+            
+            // Validar se o PasswordHash não é nulo ou vazio
+            if (string.IsNullOrEmpty(user.PasswordHash))
             {
-                if (hashBytes[i + 16] != hash[i])
+                if (user.PasswordHash == null)
+                    throw new ArgumentNullException(nameof(request), "PasswordHash não pode ser nulo");
+                else
+                    throw new ArgumentException("PasswordHash não pode estar vazio", nameof(request));
+            }
+            
+            try
+            {
+                // Extrair salt e hash do PasswordHash armazenado
+                byte[] hashBytes = Convert.FromBase64String(user.PasswordHash);
+                
+                // Os primeiros 16 bytes são o salt
+                byte[] salt = new byte[16];
+                Array.Copy(hashBytes, 0, salt, 0, 16);
+                
+                // Os próximos 20 bytes são o hash
+                byte[] storedHash = new byte[20];
+                Array.Copy(hashBytes, 16, storedHash, 0, 20);
+                
+                // Calcular hash da senha fornecida com o mesmo salt
+                using (var pbkdf2 = new Rfc2898DeriveBytes(request.Password, salt, 10000, HashAlgorithmName.SHA256))
                 {
-                    return null; // Senha incorreta
+                    byte[] computedHash = pbkdf2.GetBytes(20);
+                    
+                    // Comparar os hashes
+                    if (!storedHash.SequenceEqual(computedHash))
+                    {
+                        return null; // Senha incorreta
+                    }
                 }
+            }
+            catch (FormatException)
+            {
+                throw new FormatException("Formato do PasswordHash é inválido");
+            }
+            catch (Exception ex) when (ex is ArgumentException || ex is ArgumentNullException)
+            {
+                throw; // Relançar exceções de argumento
+            }
+            catch
+            {
+                return null; // Outros erros de hash inválido
             }
 
             // Se a senha estiver correta, gerar e retornar o token

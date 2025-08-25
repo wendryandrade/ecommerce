@@ -1,8 +1,11 @@
 ﻿using Ecommerce.Application.Features.Orders.Commands;
 using Ecommerce.Application.Features.Orders.Events;
 using Ecommerce.Application.Interfaces;
+using Ecommerce.Domain.Entities;
+using Ecommerce.Domain.Enums;
 using MassTransit;
 using MediatR;
+using System.Linq;
 
 namespace Ecommerce.Application.Features.Orders.Handlers
 {
@@ -10,9 +13,8 @@ namespace Ecommerce.Application.Features.Orders.Handlers
     {
         private readonly ICartRepository _cartRepository;
         private readonly IProductRepository _productRepository;
-        private readonly IPublishEndpoint _publishEndpoint; // Injeção do MassTransit
+        private readonly IPublishEndpoint _publishEndpoint;
 
-        // MUDANÇA: O construtor agora é mais simples
         public CreateOrderCommandHandler(
             ICartRepository cartRepository,
             IProductRepository productRepository,
@@ -43,21 +45,23 @@ namespace Ecommerce.Application.Features.Orders.Handlers
 
             var orderId = Guid.NewGuid();
 
-            // Publica um evento com todos os dados necessários
-            await _publishEndpoint.Publish(new OrderSubmissionEvent
+            // Publicar evento para processamento assíncrono
+            var orderEvent = new OrderSubmissionEvent
             {
                 OrderId = orderId,
                 UserId = request.UserId,
                 ShippingAddress = request.ShippingAddress,
                 PaymentDetails = request.PaymentDetails,
-                CartItems = cart.CartItems.Select(ci => new EventCartItem
+                CartItems = cart.CartItems.Select(item => new EventCartItem
                 {
-                    ProductId = ci.ProductId,
-                    Quantity = ci.Quantity,
-                    UnitPrice = ci.UnitPrice
+                    ProductId = item.ProductId,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice
                 }).ToList()
-            }, cancellationToken);
+            };
 
+            await _publishEndpoint.Publish(orderEvent, cancellationToken);
+            
             // Limpa o carrinho do usuário
             cart.Clear();
             await _cartRepository.UpdateAsync(cart);

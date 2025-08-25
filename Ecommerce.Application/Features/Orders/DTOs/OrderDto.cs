@@ -1,6 +1,5 @@
 ﻿using Ecommerce.Application.Features.Addresses.DTOs;
 using Ecommerce.Application.Features.Payments.DTOs;
-using Ecommerce.Domain.Enums;
 
 namespace Ecommerce.Application.Features.Orders.DTOs
 {
@@ -10,9 +9,10 @@ namespace Ecommerce.Application.Features.Orders.DTOs
         public Guid UserId { get; set; }
         public DateTime OrderDate { get; set; }
         public decimal TotalAmount { get; set; }
-        public OrderStatus Status { get; set; }
+        public Ecommerce.Domain.Enums.OrderStatus Status { get; set; }
         public List<OrderItemDto> OrderItems { get; set; } = new();
         public PaymentDto? Payment { get; set; }
         public AddressDto? ShippingAddress { get; set; }
+        public ShippingDto? Shipping { get; set; }
     }
 }
