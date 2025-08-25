@@ -45,18 +45,25 @@ jobs:
           dotnet tool install --global dotnet-sonarscanner
           dotnet tool install --global dotnet-reportgenerator-globaltool
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-      
-      # Inicia os serviços com Docker Compose, incluindo SonarQube e RabbitMQ
+
+      - name: Create .env file
+        run: |
+          echo "DB_PASS=${{ secrets.DB_PASS }}" > .env
+          echo "JWT_KEY=${{ secrets.JWT_KEY }}" >> .env
+          echo "JWT_ISSUER=${{ secrets.JWT_ISSUER }}" >> .env
+          echo "JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}" >> .env
+          echo "STRIPE_SECRETKEY=${{ secrets.STRIPE_SECRETKEY }}" >> .env
+          # A variável USERPROFILE não é necessária no Linux, então a ignoramos.
+
       - name: Start services with Docker Compose
         run: |
           docker compose up -d sonarqube-db sonarqube rabbitmq
 
-      # Espera pelo SonarQube estar pronto para evitar "Connection refused"
       - name: Wait for SonarQube to be UP
         run: |
           echo "Waiting for SonarQube to be UP..."
           for i in {1..120}; do \
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/api/system/status); \
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://sonarqube:9000/api/system/status); \
             echo "SonarQube status code: $STATUS"; \
             if [ "$STATUS" = "200" ]; then echo "SonarQube is UP"; break; fi; \
             sleep 5; \
@@ -69,7 +76,7 @@ jobs:
           dotnet sonarscanner begin \
             /k:"ecommerce" \
             /n:"Ecommerce" \
-            /d:sonar.host.url="http://localhost:9000" \
+            /d:sonar.host.url="http://sonarqube:9000" \
             /d:sonar.login="${{ env.SONAR_TOKEN }}" \
             /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
             /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
