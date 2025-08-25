@@ -31,6 +31,7 @@ namespace Ecommerce.Infrastructure.Persistence.Repositories
             return await _context.Orders
                 .Include(o => o.Payment)
                 .Include(o => o.ShippingAddress)
+                .Include(o => o.Shipping)
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Product)
                 .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
@@ -44,6 +45,7 @@ namespace Ecommerce.Infrastructure.Persistence.Repositories
                     .ThenInclude(oi => oi.Product)
                 .Include(o => o.Payment)
                 .Include(o => o.ShippingAddress) 
+                .Include(o => o.Shipping)
                 .OrderByDescending(o => o.OrderDate)
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);

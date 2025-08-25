@@ -82,15 +82,13 @@ namespace Ecommerce.API.IntegrationTests.Resources.Orders.Controllers
                 // --- Cria pedido ---
                 var createOrderRequest = new CreateOrderRequest
                 {
-                    UserId = user.Id,
                     ShippingAddress = new CreateOrderAddressRequest
                     {
                         Street = "Rua do Teste",
                         City = "Cidade Teste",
                         State = "TS",
                         PostalCode = "98765432"
-                    },
-                    PaymentDetails = new CreateOrderPaymentRequest { PaymentMethod = PaymentMethod.CreditCard }
+                    }
                 };
 
                 var response = await _client.PostAsJsonAsync("/api/orders/checkout", createOrderRequest);

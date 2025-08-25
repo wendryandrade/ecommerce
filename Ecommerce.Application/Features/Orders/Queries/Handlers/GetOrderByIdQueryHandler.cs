@@ -51,6 +51,13 @@ namespace Ecommerce.Application.Features.Orders.Queries.Handlers
                     City = order.ShippingAddress.City,
                     State = order.ShippingAddress.State,
                     PostalCode = order.ShippingAddress.PostalCode
+                } : null,
+                // Map shipping info (sem carrier/tracking)
+                Shipping = order.Shipping != null ? new ShippingDto
+                {
+                    ShippingCost = order.Shipping.ShippingCost,
+                    EstimatedDeliveryDate = order.Shipping.EstimatedDeliveryDate,
+                    DeliveryDays = (int)Math.Max(0, (order.Shipping.EstimatedDeliveryDate.Date - order.OrderDate.Date).TotalDays)
                 } : null
             };
 

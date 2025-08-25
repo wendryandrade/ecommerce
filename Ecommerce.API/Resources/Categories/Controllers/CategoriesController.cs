@@ -5,11 +5,12 @@ using Ecommerce.Application.Features.Categories.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Ecommerce.API.Common;
 
 namespace Ecommerce.API.Resources.Categories.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/categories")]
     public class CategoriesController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -40,6 +41,7 @@ namespace Ecommerce.API.Resources.Categories.Controllers
                 }).ToList()
             });
 
+            Response.AddSuccessMessage("Categorias recuperadas com sucesso.");
             return Ok(response);
         }
 
@@ -48,7 +50,14 @@ namespace Ecommerce.API.Resources.Categories.Controllers
         public async Task<IActionResult> GetById(Guid id)
         {
             var category = await _mediator.Send(new GetCategoryByIdQuery { Id = id });
-            if (category == null) return NotFound();
+            if (category == null)
+                return NotFound(new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Not found",
+                    Detail = "Category not found."
+                });
+            Response.AddSuccessMessage("Categoria recuperada com sucesso.");
             return Ok(category);
         }
 
@@ -64,7 +73,8 @@ namespace Ecommerce.API.Resources.Categories.Controllers
             };
 
             var id = await _mediator.Send(command);
-            return CreatedAtAction(nameof(GetById), new { id = id }, new { id = id });
+            Response.AddSuccessMessage("Categoria criada com sucesso.");
+            return CreatedAtAction(nameof(GetById), new { id }, new { id });
         }
         
         // PUT: api/categories/{id} - Protegido para Admin
@@ -80,7 +90,15 @@ namespace Ecommerce.API.Resources.Categories.Controllers
             };
 
             var result = await _mediator.Send(command);
-            return result ? NoContent() : NotFound();
+            if (!result)
+                return NotFound(new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Not found",
+                    Detail = "Category not found."
+                });
+            Response.AddSuccessMessage("Categoria atualizada com sucesso.");
+            return NoContent();
         }
 
         // DELETE: api/categories/{id} - Protegido para Admin
@@ -92,13 +110,24 @@ namespace Ecommerce.API.Resources.Categories.Controllers
             {
                 var result = await _mediator.Send(new DeleteCategoryCommand { Id = id });
                 if (!result)
-                    return NotFound();
+                    return NotFound(new ProblemDetails
+                    {
+                        Status = StatusCodes.Status404NotFound,
+                        Title = "Not found",
+                        Detail = "Category not found."
+                    });
 
+                Response.AddSuccessMessage("Categoria deletada com sucesso.");
                 return NoContent();
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Invalid operation",
+                    Detail = ex.Message
+                });
             }
         }
     }

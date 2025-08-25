@@ -1,4 +1,4 @@
-﻿namespace Ecommerce.API.Resources.Orders.DTOs.Requests
+namespace Ecommerce.API.Resources.Orders.DTOs.Requests
 {
     public class CreateOrderAddressRequest
     {

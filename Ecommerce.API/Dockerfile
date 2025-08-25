@@ -2,6 +2,7 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
 EXPOSE 80
+EXPOSE 443
 
 # Imagem para build
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
@@ -19,8 +20,9 @@ COPY Ecommerce.Domain/ ./Ecommerce.Domain/
 WORKDIR "/src/Ecommerce.API"
 RUN dotnet build "Ecommerce.API.csproj" -c Release -o /app/build
 
-# Publica��o
+# Publicacaoo
 FROM build AS publish
+ARG CERT_PASSWORD=Pass@word1
 RUN dotnet publish "Ecommerce.API.csproj" -c Release -o /app/publish
 
 # Stage final

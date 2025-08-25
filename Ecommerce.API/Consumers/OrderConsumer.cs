@@ -1,6 +1,5 @@
 ﻿using Ecommerce.Application.Features.Orders.Events;
 using Ecommerce.Application.Interfaces;
-using Ecommerce.Application.Interfaces.Infrastructure;
 using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Enums;
 using MassTransit;
@@ -68,21 +67,30 @@ namespace Ecommerce.API.Consumers
                 itemsTotalAmount += item.Quantity * item.UnitPrice;
             }
 
-            var shippingCost = await _shippingService.CalculateShippingCostAsync("32000000", message.ShippingAddress.PostalCode);
+            _logger.LogInformation("Calculando frete para CEP de destino: {DestinationCep}", message.ShippingAddress.PostalCode);
+            var (shippingCost, deliveryDays, _, _, _) = await _shippingService.CalculateShippingWithDetailsFromStoreAsync(message.ShippingAddress.PostalCode);
+            _logger.LogInformation("Frete calculado: R$ {ShippingCost}", shippingCost);
+            
             var finalTotalAmount = itemsTotalAmount + shippingCost;
+            _logger.LogInformation("Valor total do pedido: R$ {TotalAmount} (itens: R$ {ItemsAmount} + frete: R$ {ShippingCost})", finalTotalAmount, itemsTotalAmount, shippingCost);
+            
+            _logger.LogInformation("Processando pagamento via Stripe: R$ {Amount}, moeda: brl", finalTotalAmount);
             var transactionId = await _paymentService.ProcessPaymentAsync(finalTotalAmount, "brl", "pm_card_visa");
+            _logger.LogInformation("Pagamento processado com sucesso! Transaction ID: {TransactionId}", transactionId);
 
+            var now = DateTime.UtcNow;
             var order = new Order
             {
                 Id = message.OrderId,
                 UserId = message.UserId,
-                OrderDate = DateTime.UtcNow,
+                OrderDate = now,
                 TotalAmount = finalTotalAmount,
                 Status = OrderStatus.Paid,
                 OrderItems = orderItems,
                 ShippingAddress = new Address
                 {
                     Id = Guid.NewGuid(),
+                    UserId = message.UserId,
                     Street = message.ShippingAddress.Street,
                     City = message.ShippingAddress.City,
                     State = message.ShippingAddress.State,
@@ -95,6 +103,12 @@ namespace Ecommerce.API.Consumers
                     PaymentMethod = message.PaymentDetails.PaymentMethod,
                     Status = PaymentStatus.Paid,
                     TransactionId = transactionId
+                },
+                Shipping = new Shipping
+                {
+                    Id = Guid.NewGuid(),
+                    ShippingCost = shippingCost,
+                    EstimatedDeliveryDate = now.Date.AddDays(deliveryDays)
                 }
             };
 
