@@ -45,7 +45,7 @@ jobs:
           dotnet tool install --global dotnet-sonarscanner
           dotnet tool install --global dotnet-reportgenerator-globaltool
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-
+      
       - name: Create .env file
         run: |
           echo "DB_PASS=${{ secrets.DB_PASS }}" > .env
@@ -53,17 +53,33 @@ jobs:
           echo "JWT_ISSUER=${{ secrets.JWT_ISSUER }}" >> .env
           echo "JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}" >> .env
           echo "STRIPE_SECRETKEY=${{ secrets.STRIPE_SECRETKEY }}" >> .env
-          # A variável USERPROFILE não é necessária no Linux, então a ignoramos.
-
-      - name: Start services with Docker Compose
+          echo "STRIPE_PUBLISHABLEKEY=${{ secrets.STRIPE_PUBLISHABLEKEY }}" >> .env
+          echo "API_URL=${{ secrets.API_URL }}" >> .env
+          echo "API_TOKEN=${{ secrets.API_TOKEN }}" >> .env
+          echo "DEFAULT_ORIGIN_ZIPCODE=01001000" >> .env
+          echo "SERVICES=1,2,18" >> .env
+          echo "USE_MOCK_DATA=false" >> .env
+          echo "DEFAULT_PACKAGE_WIDTH=10" >> .env
+          echo "DEFAULT_PACKAGE_HEIGHT=10" >> .env
+          echo "DEFAULT_PACKAGE_LENGTH=10" >> .env
+          echo "DEFAULT_PACKAGE_WEIGHT=1" >> .env
+          echo "DEFAULT_INSURANCE_VALUE=0" >> .env
+          echo "DB_HOST=ecommerce-db" >> .env
+          echo "DB_NAME=EcommerceDB" >> .env
+          echo "DB_USER=sa" >> .env
+          echo "DB_PORT=1433" >> .env
+          
+      # Inicia os serviços com Docker Compose, incluindo SonarQube e RabbitMQ
+      - name: Start SonarQube services with Docker Compose
         run: |
           docker compose up -d sonarqube-db sonarqube rabbitmq
 
+      # Espera pelo SonarQube estar pronto para evitar "Connection refused"
       - name: Wait for SonarQube to be UP
         run: |
           echo "Waiting for SonarQube to be UP..."
-          for i in {1..120}; do \
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://sonarqube:9000/api/system/status); \
+          for i in {1..90}; do \
+            STATUS=$(docker exec sonarqube curl -s -o /dev/null -w "%{http_code}" http://localhost:9000/api/system/status); \
             echo "SonarQube status code: $STATUS"; \
             if [ "$STATUS" = "200" ]; then echo "SonarQube is UP"; break; fi; \
             sleep 5; \
