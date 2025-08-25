@@ -83,7 +83,7 @@ jobs:
             /k:"ecommerce" \
             /n:"Ecommerce" \
             /d:sonar.host.url="http://localhost:9000" \
-            /d:sonar.login="$SONAR_TOKEN" \
+            /d:sonar.login="${{ env.SONAR.TOKEN }}" \
             /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
             /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
             /d:sonar.coverage.exclusions="**/Migrations/**,**/Resources/**/DTOs/**,**/Resources/**/Requests/**,**/Resources/**/Responses/**,**/Program*.cs" \
@@ -91,7 +91,7 @@ jobs:
 
           dotnet build ${{ env.SLN_FILE }} --configuration Release --no-incremental
           dotnet test ${{ env.SLN_FILE }} --no-build --configuration Release
-          dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"
+          dotnet sonarscanner end /d:sonar.login="${{ env.SONAR.TOKEN }}"
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
