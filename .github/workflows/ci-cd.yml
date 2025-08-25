@@ -105,9 +105,8 @@ jobs:
           DB_PASS=Your_password123!
           JWT_KEY=${{ secrets.JWT_KEY }}
           JWT_ISSUER=${{ secrets.JWT_ISSUER }}
-          JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          STRIPE_SECRETKEY=${{ secrets.STRIPE_SECRETKEY }}
+                     JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
+           STRIPE_SECRETKEY=${{ secrets.STRIPE_SECRETKEY }}
           STRIPE_PUBLISHABLEKEY=${{ secrets.STRIPE_PUBLISHABLEKEY }}
           API_URL=${{ secrets.API_URL }}
           API_TOKEN=${{ secrets.API_TOKEN }}
@@ -135,13 +134,28 @@ jobs:
           echo "SonarQube is ready!"
 
       - name: SonarQube analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
+          # Verifica se o token está disponível
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "SONAR_TOKEN não está configurado. Pulando análise SonarQube."
+            exit 0
+          fi
+          
+          # Testa conexão com SonarQube
+          echo "Testando conexão com SonarQube..."
+          if ! curl -s http://localhost:9000/api/system/status | grep -q "UP"; then
+            echo "SonarQube não está acessível. Pulando análise."
+            exit 0
+          fi
+          
           echo "Iniciando análise SonarQube..."
           dotnet sonarscanner begin \
             /k:"ecommerce" \
             /n:"Ecommerce" \
             /d:sonar.host.url="http://localhost:9000" \
-            /d:sonar.login="${{ env.SONAR_TOKEN }}" \
+            /d:sonar.login="$SONAR_TOKEN" \
             /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
             /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
             /d:sonar.coverage.exclusions="**/Migrations/**,**/Resources/**/DTOs/**,**/Resources/**/Requests/**,**/Resources/**/Responses/**,**/Program*.cs" \
@@ -157,7 +171,7 @@ jobs:
             /p:CoverletOutputFormat=opencover \
             /p:CoverletOutput=TestResults/Coverage/
 
-          dotnet sonarscanner end /d:sonar.login="${{ env.SONAR_TOKEN }}"
+          dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"
 
       - name: Cleanup SonarQube
         if: always()

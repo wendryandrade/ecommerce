@@ -30,6 +30,10 @@ namespace Ecommerce.API.IntegrationTests.Resources.Orders.Controllers
                 .Setup(s => s.CalculateShippingCostAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(0m);
 
+            _factory.MockShippingService
+                .Setup(s => s.CalculateShippingWithDetailsFromStoreAsync(It.IsAny<string>()))
+                .ReturnsAsync((0m, 3, false, new Application.Interfaces.AddressInfo(), new Application.Interfaces.AddressInfo()));
+
             _factory.MockPaymentService
                 .Setup(p => p.ProcessPaymentAsync(It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync("mock_tx_id");
@@ -95,16 +99,28 @@ namespace Ecommerce.API.IntegrationTests.Resources.Orders.Controllers
                 response.EnsureSuccessStatusCode();
 
                 // --- Aguarda consumo do evento ---
-                var consumerHarness = _factory.Services.GetRequiredService<IConsumerTestHarness<OrderConsumer>>();
-                var consumed = await consumerHarness.Consumed.Any<OrderSubmissionEvent>();
+                // Aguarda o consumo do evento com timeout
+                var consumed = false;
+                var eventTimeout = TimeSpan.FromSeconds(10);
+                var eventStart = DateTime.UtcNow;
+                
+                while ((DateTime.UtcNow - eventStart) < eventTimeout && !consumed)
+                {
+                    consumed = await harness.Consumed.Any<OrderSubmissionEvent>();
+                    if (!consumed)
+                    {
+                        await Task.Delay(100);
+                    }
+                }
+                
                 Assert.True(consumed, "O evento OrderSubmissionEvent não foi consumido pelo OrderConsumer");
 
                 // --- Valida persistência ---
                 Order? orderInDb = null;
-                var timeout = TimeSpan.FromSeconds(5);
-                var start = DateTime.UtcNow;
+                var dbTimeout = TimeSpan.FromSeconds(5);
+                var dbStart = DateTime.UtcNow;
 
-                while ((DateTime.UtcNow - start) < timeout)
+                while ((DateTime.UtcNow - dbStart) < dbTimeout)
                 {
                     orderInDb = await dbContext.Orders.FirstOrDefaultAsync(o => o.UserId == user.Id);
                     if (orderInDb != null) break;
