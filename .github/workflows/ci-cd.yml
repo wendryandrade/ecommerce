@@ -37,6 +37,24 @@ jobs:
           --health-retries 5
           --name sonarqube-db
 
+      sonarqube:
+        image: sonarqube:lts-community
+        env:
+          SONARQUBE_JDBC_URL: jdbc:postgresql://sonarqube-db:5432/sonar
+          SONARQUBE_JDBC_USERNAME: sonar
+          SONARQUBE_JDBC_PASSWORD: sonar
+          SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: true
+        ports:
+          - 9000:9000
+        depends_on:
+          - sonarqube-db
+        options: >-
+          --health-cmd "curl --fail http://localhost:9000/api/server/version"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --name sonarqube
+
       rabbitmq:
         image: rabbitmq:3-management
         ports:
@@ -75,7 +93,7 @@ jobs:
         run: |
           dotnet sonarscanner begin /k:"my-ecommerce-project" \
             /o:"wendryandrade-org" \
-            /d:sonar.host.url="http://localhost:9000" \
+            /d:sonar.host.url="http://sonarqube:9000" \
             /d:sonar.login="${{ env.SONAR_TOKEN }}" \
             /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
             /d:sonar.exclusions="**/*.sln,**/*.csproj,**/bin/**,**/obj/**,**/Migrations/**" \
