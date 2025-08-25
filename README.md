@@ -130,7 +130,3 @@ docker compose down -v
 * Sempre atualize o `.env` ao alterar chaves de integração ou outras configurações.
 
 ---
-
-### Contato
-
-Para dúvidas ou problemas, abra uma issue no repositório ou entre em contato com o desenvolvedor.
