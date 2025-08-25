@@ -119,7 +119,7 @@ docker compose down -v
       
 - .env.example
   - O arquivo .env.example contém variáveis de ambiente para facilitar a configuração local e do docker-compose.
-  - Incluímos uma chave JWT válida para testes: ajuste conforme necessário antes de usar em produção.
+  - Foi incluída uma chave JWT válida para testes: ajuste conforme necessário antes de usar em produção.
 
 
 ### Observações
