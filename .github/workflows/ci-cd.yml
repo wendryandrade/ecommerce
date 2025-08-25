@@ -15,7 +15,73 @@ env:
   SLN_FILE: 'Ecommerce.sln'
 
 jobs:
-  build-test-scan:
+  build-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          DB_PASS=Your_password123!
+          JWT_KEY=${{ secrets.JWT_KEY }}
+          JWT_ISSUER=${{ secrets.JWT_ISSUER }}
+          JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
+          STRIPE_SECRETKEY=${{ secrets.STRIPE_SECRETKEY }}
+          STRIPE_PUBLISHABLEKEY=${{ secrets.STRIPE_PUBLISHABLEKEY }}
+          API_URL=${{ secrets.API_URL }}
+          API_TOKEN=${{ secrets.API_TOKEN }}
+          DEFAULT_ORIGIN_ZIPCODE=01001000
+          SERVICES=1,2,18
+          USE_MOCK_DATA=false
+          DEFAULT_PACKAGE_WIDTH=10
+          DEFAULT_PACKAGE_HEIGHT=10
+          DEFAULT_PACKAGE_LENGTH=10
+          DEFAULT_PACKAGE_WEIGHT=1
+          DEFAULT_INSURANCE_VALUE=0
+          DB_HOST=ecommerce-db
+          DB_NAME=EcommerceDB
+          DB_USER=sa
+          DB_PORT=1433
+          EOF
+
+      - name: Start services with Docker Compose
+        run: docker compose up --build -d
+
+      - name: Build and Test
+        run: |
+          dotnet build ${{ env.SLN_FILE }} --configuration Release --no-incremental
+
+          dotnet test ${{ env.SLN_FILE }} \
+            --no-build \
+            --configuration Release \
+            --logger "trx;LogFileName=test_results.trx" \
+            /p:CollectCoverage=true \
+            /p:CoverletOutputFormat=opencover \
+            /p:CoverletOutput=TestResults/Coverage/
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            **/TestResults/**/*.trx
+            **/TestResults/**/coverage.opencover.xml
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down
+
+  sonarqube-analysis:
+    needs: build-test
     runs-on: ubuntu-latest
     
     steps:
@@ -57,8 +123,8 @@ jobs:
           DB_PORT=1433
           EOF
 
-      - name: Start services with Docker Compose
-        run: docker compose up --build -d
+      - name: Start SonarQube
+        run: docker compose up -d sonarqube-db sonarqube
 
       - name: Wait for SonarQube
         run: |
@@ -92,21 +158,12 @@ jobs:
 
           dotnet sonarscanner end /d:sonar.login="${{ env.SONAR_TOKEN }}"
 
-      - name: Upload Test Results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results
-          path: |
-            **/TestResults/**/*.trx
-            **/TestResults/**/coverage.opencover.xml
-
-      - name: Cleanup
+      - name: Cleanup SonarQube
         if: always()
         run: docker compose down
 
   docker-build:
-    needs: build-test-scan
+    needs: build-test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     
