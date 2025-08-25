@@ -1,0 +1,82 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  SLN_FILE: 'Ecommerce.sln'
+  DOCKER_IMAGE_NAME: ecommerce-api
+  DOCKER_REGISTRY: ghcr.io
+
+jobs:
+  full-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          DB_PASS=Your_password123!
+          DB_HOST=ecommerce-db
+          DB_NAME=EcommerceDB
+          DB_USER=sa
+          DB_PORT=1433
+          JWT_KEY=${{ secrets.JWT_KEY }}
+          JWT_ISSUER=${{ secrets.JWT_ISSUER }}
+          JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
+          STRIPE_SECRETKEY=${{ secrets.STRIPE_SECRETKEY }}
+          STRIPE_PUBLISHABLEKEY=${{ secrets.STRIPE_PUBLISHABLEKEY }}
+          API_URL=${{ secrets.API_URL }}
+          API_TOKEN=${{ secrets.API_TOKEN }}
+          DEFAULT_ORIGIN_ZIPCODE=01001000
+          SERVICES=1,2,18
+          USE_MOCK_DATA=false
+          DEFAULT_PACKAGE_WIDTH=10
+          DEFAULT_PACKAGE_HEIGHT=10
+          DEFAULT_PACKAGE_LENGTH=10
+          DEFAULT_PACKAGE_WEIGHT=1
+          DEFAULT_INSURANCE_VALUE=0
+          EOF
+
+      - name: Start all services
+        run: docker compose up --build -d
+
+      - name: Build API
+        run: dotnet build ${{ env.SLN_FILE }} --configuration Release --no-incremental
+
+      - name: Run Tests and Coverage
+        run: |
+          dotnet test ${{ env.SLN_FILE }} \
+            --no-build \
+            --configuration Release \
+            --logger "trx;LogFileName=test_results.trx" \
+            /p:CollectCoverage=true \
+            /p:CoverletOutputFormat=opencover \
+            /p:CoverletOutput=TestResults/Coverage/
+
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            **/TestResults/**/*.trx
+            **/TestResults/**/coverage.opencover.xml
+
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v
