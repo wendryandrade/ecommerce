@@ -21,9 +21,8 @@ jobs:
   build-test-scan:
     runs-on: ubuntu-latest
 
-    # Definição dos serviços que não precisam de um contêiner separado para serem iniciados por 'docker-compose'
     services:
-      postgres:
+      sonarqube-db:
         image: postgres:15
         env:
           POSTGRES_USER: sonar
@@ -117,3 +116,7 @@ jobs:
           tags: |
             ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
             ${{ env.DOCKER_REGISTRY }}/${{ github.repository }}/${{ env.DOCKER_IMAGE_NAME }}:latest
+
+      - name: Cleanup Docker resources
+        if: always()
+        run: docker-compose down -v
