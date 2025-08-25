@@ -23,7 +23,7 @@ jobs:
 
     # Definição dos serviços que não precisam de um contêiner separado para serem iniciados por 'docker-compose'
     services:
-      sonarqube-db:
+      postgres:
         image: postgres:15
         env:
           POSTGRES_USER: sonar
@@ -32,7 +32,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -47,7 +47,7 @@ jobs:
           RABBITMQ_DEFAULT_USER: guest
           RABBITMQ_DEFAULT_PASS: guest
         options: >-
-          --health-cmd rabbitmqctl status
+          --health-cmd "rabbitmqctl status"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
