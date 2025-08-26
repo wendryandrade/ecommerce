@@ -112,11 +112,25 @@ docker compose down -v
 
 ### Informações adicionais
 
+- SonarQube (porta 9000)
+  - Acesse http://localhost:9000
+  - Login padrão: admin
+  - Senha padrão: admin
+  - No primeiro acesso, o SonarQube exige a troca da senha. Defina uma nova senha e guarde em local seguro.
+
+- SonarCloud (Análise de Código)
+  - O projeto está configurado para análise automática no SonarCloud
+  - Para configurar inicialmente:
+    1. Obtenha um token do SonarCloud (https://sonarcloud.io/account/security)
+    2. Configure o token como secret `SONAR_TOKEN` no GitHub
+    3. Execute o script de setup: `./scripts/setup-sonarcloud.sh`
+    4. O CI/CD pipeline irá executar análises automaticamente
+
 - Ajuste de line endings do entrypoint
   - Se ocorrer erro "/entrypoint.sh: not found" ao subir os containers no Linux/WSL, converta o arquivo Ecommerce.API/entrypoint.sh para final de linha LF (Unix):
     - VS Code: abra o arquivo, no canto inferior direito selecione CRLF e altere para LF, salve.
     - Ou via terminal (em ambientes que possuam dos2unix): dos2unix Ecommerce.API/entrypoint.sh
-      
+
 - .env.example
   - O arquivo .env.example contém variáveis de ambiente para facilitar a configuração local e do docker-compose.
   - Foi incluída uma chave JWT válida para testes: ajuste conforme necessário antes de usar em produção.
