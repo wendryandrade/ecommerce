@@ -123,6 +123,14 @@ docker compose down -v
   - Senha padrão: admin
   - No primeiro acesso, o SonarQube exige a troca da senha. Defina uma nova senha e guarde em local seguro.
 
+- SonarCloud (Análise de Código)
+  - O projeto está configurado para análise automática no SonarCloud
+  - Para configurar inicialmente:
+    1. Obtenha um token do SonarCloud (https://sonarcloud.io/account/security)
+    2. Configure o token como secret `SONAR_TOKEN` no GitHub
+    3. Execute o script de setup: `./scripts/setup-sonarcloud.sh`
+    4. O CI/CD pipeline irá executar análises automaticamente
+
 - .env.example
   - O arquivo .env.example contém variáveis de ambiente para facilitar a configuração local e do docker-compose.
   - Incluímos uma chave JWT válida para testes: ajuste conforme necessário antes de usar em produção.
