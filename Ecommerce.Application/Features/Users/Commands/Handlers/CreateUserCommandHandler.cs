@@ -25,18 +25,18 @@ namespace Ecommerce.Application.Features.Users.Handlers
             }
 
             // 2. Hashear a senha (usando a biblioteca nativa do .NET)
-            byte[] salt = new byte[16];
+            byte[] salt = new byte[32];
             using (var rng = RandomNumberGenerator.Create())
             {
                 rng.GetBytes(salt);
             }
 
-            var pbkdf2 = new Rfc2898DeriveBytes(request.Password, salt, 10000, HashAlgorithmName.SHA256);
+            var pbkdf2 = new Rfc2898DeriveBytes(request.Password, salt, 100000, HashAlgorithmName.SHA256);
             byte[] hash = pbkdf2.GetBytes(20);
 
-            byte[] hashBytes = new byte[36];
-            Array.Copy(salt, 0, hashBytes, 0, 16);
-            Array.Copy(hash, 0, hashBytes, 16, 20);
+            byte[] hashBytes = new byte[52];
+            Array.Copy(salt, 0, hashBytes, 0, 32);
+            Array.Copy(hash, 0, hashBytes, 32, 20);
 
             // Salva o hash combinado (salt + hash) como uma string Base64
             var passwordHash = Convert.ToBase64String(hashBytes);
