@@ -62,7 +62,7 @@ jobs:
           dotnet sonarscanner begin \
             /k:"ecommerce" \
             /n:"Ecommerce" \
-            /o:"SUA_ORGANIZACAO" \
+            /o:"wendryandrade" \
             /d:sonar.host.url="https://sonarcloud.io" \
             /d:sonar.login="${{ secrets.SONAR_TOKEN }}" \
             /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
