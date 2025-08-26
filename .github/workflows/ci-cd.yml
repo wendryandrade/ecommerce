@@ -77,8 +77,13 @@ jobs:
       - name: Begin SonarCloud analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
+          if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
             # PR analysis
             dotnet sonarscanner begin \
               /k:"ecommerce" \
@@ -86,9 +91,9 @@ jobs:
               /o:"wendryandrade" \
               /d:sonar.host.url="https://sonarcloud.io" \
               /d:sonar.login="$SONAR_TOKEN" \
-              /d:sonar.pullrequest.key="${{ github.event.pull_request.number }}" \
-              /d:sonar.pullrequest.branch="${{ github.head_ref }}" \
-              /d:sonar.pullrequest.base="${{ github.base_ref }}" \
+              /d:sonar.pullrequest.key="$PR_NUMBER" \
+              /d:sonar.pullrequest.branch="$HEAD_REF" \
+              /d:sonar.pullrequest.base="$BASE_REF" \
               /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
               /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
               /d:sonar.coverage.exclusions="**/Migrations/**,**/Resources/**/DTOs/**,**/Resources/**/Requests/**,**/Resources/**/Responses/**,**/Program*.cs" \
@@ -102,7 +107,7 @@ jobs:
               /o:"wendryandrade" \
               /d:sonar.host.url="https://sonarcloud.io" \
               /d:sonar.login="$SONAR_TOKEN" \
-              /d:sonar.branch.name="${{ github.ref_name }}" \
+              /d:sonar.branch.name="$REF_NAME" \
               /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
               /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
               /d:sonar.coverage.exclusions="**/Migrations/**,**/Resources/**/DTOs/**,**/Resources/**/Requests/**,**/Resources/**/Responses/**,**/Program*.cs" \
@@ -126,12 +131,13 @@ jobs:
       - name: End SonarCloud analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
           # End SonarCloud analysis
           dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" || echo "SonarCloud analysis ended with warnings"
           
           # If this is the main branch, ensure it's set as the default branch
-          if [ "${{ github.ref_name }}" == "main" ]; then
+          if [ "$REF_NAME" == "main" ]; then
             echo "Ensuring main branch is set as default in SonarCloud"
             curl -X POST "https://sonarcloud.io/api/project_branches/rename" \
               -H "Authorization: Bearer $SONAR_TOKEN" \
