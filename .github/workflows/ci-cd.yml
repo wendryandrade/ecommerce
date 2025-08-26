@@ -73,6 +73,13 @@ jobs:
             -H "Content-Type: application/x-www-form-urlencoded" \
             -d "project=ecommerce&name=main" \
             || echo "Default branch setup may have failed"
+          
+          # Ensure main branch exists and is set as default
+          curl -X POST "https://sonarcloud.io/api/project_branches/create" \
+            -H "Authorization: Bearer $SONAR_TOKEN" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "project=ecommerce&branch=main" \
+            || echo "Main branch may already exist"
 
       - name: Begin SonarCloud analysis
         env:
