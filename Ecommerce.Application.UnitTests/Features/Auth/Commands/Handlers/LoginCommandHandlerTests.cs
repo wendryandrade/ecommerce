@@ -23,11 +23,11 @@ namespace Ecommerce.Application.UnitTests.Features.Auth.Commands.Handlers
         // Método auxiliar para gerar um hash de senha válido para os testes
         private static string GenerateValidPasswordHash(string password, byte[] salt)
         {
-            var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 10000, HashAlgorithmName.SHA256);
+            var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 100000, HashAlgorithmName.SHA256);
             byte[] hash = pbkdf2.GetBytes(20);
-            byte[] hashBytes = new byte[36];
-            Array.Copy(salt, 0, hashBytes, 0, 16);
-            Array.Copy(hash, 0, hashBytes, 16, 20);
+            byte[] hashBytes = new byte[52];
+            Array.Copy(salt, 0, hashBytes, 0, 32);
+            Array.Copy(hash, 0, hashBytes, 32, 20);
             return Convert.ToBase64String(hashBytes);
         }
 
@@ -37,7 +37,7 @@ namespace Ecommerce.Application.UnitTests.Features.Auth.Commands.Handlers
             // Arrange
             var password = "Password123!";
             // Usamos um salt determinístico mas não totalmente previsível para o teste
-            var salt = new byte[16] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            var salt = new byte[32] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32 };
             var command = new LoginCommand { Email = "teste@email.com", Password = password };
             var passwordHash = GenerateValidPasswordHash(password, salt);
             var userFromRepo = new User { Id = Guid.NewGuid(), Email = command.Email, PasswordHash = passwordHash, Role = "Customer" };
@@ -74,7 +74,7 @@ namespace Ecommerce.Application.UnitTests.Features.Auth.Commands.Handlers
             var correctPassword = "Password123!";
             var incorrectPassword = "senha_errada";
             // Usamos um salt determinístico mas não totalmente previsível para o teste
-            var salt = new byte[16] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+            var salt = new byte[32] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32 };
             var command = new LoginCommand { Email = "teste@email.com", Password = incorrectPassword };
 
             // Geramos um hash com a senha CORRETA para simular o que está no "banco"
