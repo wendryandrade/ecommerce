@@ -28,7 +28,7 @@ jobs:
       - name: Create .env file
         run: |
           cat > .env << EOF
-          DB_PASS=Your_password123!
+          DB_PASS=${{ secrets.DB_PASSWORD }}
           DB_HOST=ecommerce-db
           DB_NAME=EcommerceDB
           DB_USER=sa
