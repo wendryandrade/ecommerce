@@ -57,22 +57,26 @@ jobs:
         run: dotnet tool install --global dotnet-sonarscanner
 
       - name: Setup SonarCloud project
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           # Create SonarCloud project if it doesn't exist
           curl -X POST "https://sonarcloud.io/api/projects/create" \
-            -H "Authorization: Bearer ${{ secrets.SONAR_TOKEN }}" \
+            -H "Authorization: Bearer $SONAR_TOKEN" \
             -H "Content-Type: application/x-www-form-urlencoded" \
             -d "project=ecommerce&name=Ecommerce&organization=wendryandrade" \
             || echo "Project may already exist or creation failed"
           
           # Set default branch to main
           curl -X POST "https://sonarcloud.io/api/project_branches/rename" \
-            -H "Authorization: Bearer ${{ secrets.SONAR_TOKEN }}" \
+            -H "Authorization: Bearer $SONAR_TOKEN" \
             -H "Content-Type: application/x-www-form-urlencoded" \
             -d "project=ecommerce&name=main" \
             || echo "Default branch setup may have failed"
 
       - name: Begin SonarCloud analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             # PR analysis
@@ -81,7 +85,7 @@ jobs:
               /n:"Ecommerce" \
               /o:"wendryandrade" \
               /d:sonar.host.url="https://sonarcloud.io" \
-              /d:sonar.login="${{ secrets.SONAR_TOKEN }}" \
+              /d:sonar.login="$SONAR_TOKEN" \
               /d:sonar.pullrequest.key="${{ github.event.pull_request.number }}" \
               /d:sonar.pullrequest.branch="${{ github.head_ref }}" \
               /d:sonar.pullrequest.base="${{ github.base_ref }}" \
@@ -97,7 +101,7 @@ jobs:
               /n:"Ecommerce" \
               /o:"wendryandrade" \
               /d:sonar.host.url="https://sonarcloud.io" \
-              /d:sonar.login="${{ secrets.SONAR_TOKEN }}" \
+              /d:sonar.login="$SONAR_TOKEN" \
               /d:sonar.branch.name="${{ github.ref_name }}" \
               /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
               /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
@@ -120,15 +124,17 @@ jobs:
             /p:CoverletOutput=TestResults/Coverage/
 
       - name: End SonarCloud analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           # End SonarCloud analysis
-          dotnet sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}" || echo "SonarCloud analysis ended with warnings"
+          dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" || echo "SonarCloud analysis ended with warnings"
           
           # If this is the main branch, ensure it's set as the default branch
           if [ "${{ github.ref_name }}" == "main" ]; then
             echo "Ensuring main branch is set as default in SonarCloud"
             curl -X POST "https://sonarcloud.io/api/project_branches/rename" \
-              -H "Authorization: Bearer ${{ secrets.SONAR_TOKEN }}" \
+              -H "Authorization: Bearer $SONAR_TOKEN" \
               -H "Content-Type: application/x-www-form-urlencoded" \
               -d "project=ecommerce&name=main" \
               || echo "Default branch setup completed"
