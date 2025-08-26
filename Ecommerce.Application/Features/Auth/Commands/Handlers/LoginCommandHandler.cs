@@ -40,16 +40,16 @@ namespace Ecommerce.Application.Features.Auth.Commands.Handlers
                 // Extrair salt e hash do PasswordHash armazenado
                 byte[] hashBytes = Convert.FromBase64String(user.PasswordHash);
                 
-                // Os primeiros 16 bytes são o salt
-                byte[] salt = new byte[16];
-                Array.Copy(hashBytes, 0, salt, 0, 16);
+                // Os primeiros 32 bytes são o salt
+                byte[] salt = new byte[32];
+                Array.Copy(hashBytes, 0, salt, 0, 32);
                 
                 // Os próximos 20 bytes são o hash
                 byte[] storedHash = new byte[20];
-                Array.Copy(hashBytes, 16, storedHash, 0, 20);
+                Array.Copy(hashBytes, 32, storedHash, 0, 20);
                 
                 // Calcular hash da senha fornecida com o mesmo salt
-                using (var pbkdf2 = new Rfc2898DeriveBytes(request.Password, salt, 10000, HashAlgorithmName.SHA256))
+                using (var pbkdf2 = new Rfc2898DeriveBytes(request.Password, salt, 100000, HashAlgorithmName.SHA256))
                 {
                     byte[] computedHash = pbkdf2.GetBytes(20);
                     

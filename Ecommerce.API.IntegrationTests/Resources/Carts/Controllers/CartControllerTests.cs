@@ -127,13 +127,13 @@ namespace Ecommerce.API.IntegrationTests.Resources.Carts.Controllers
         // CORREÇÃO: Adicionado o método de hash como um método auxiliar privado
         private static string GeneratePasswordHash(string password)
         {
-            byte[] salt = new byte[16];
+            byte[] salt = new byte[32];
             RandomNumberGenerator.Fill(salt);
-            var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 10000, HashAlgorithmName.SHA256);
+            var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 100000, HashAlgorithmName.SHA256);
             byte[] hash = pbkdf2.GetBytes(20);
-            byte[] hashBytes = new byte[36];
-            Array.Copy(salt, 0, hashBytes, 0, 16);
-            Array.Copy(hash, 0, hashBytes, 16, 20);
+            byte[] hashBytes = new byte[52];
+            Array.Copy(salt, 0, hashBytes, 0, 32);
+            Array.Copy(hash, 0, hashBytes, 32, 20);
             return Convert.ToBase64String(hashBytes);
         }
     }
