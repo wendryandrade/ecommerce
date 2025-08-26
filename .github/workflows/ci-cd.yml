@@ -36,7 +36,6 @@ jobs:
           JWT_KEY=${{ secrets.JWT_KEY }}
           JWT_ISSUER=${{ secrets.JWT_ISSUER }}
           JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
-          SONAR_TOKEN=${{ secrets.SONAR_TOKEN }}
           STRIPE_SECRETKEY=${{ secrets.STRIPE_SECRETKEY }}
           STRIPE_PUBLISHABLEKEY=${{ secrets.STRIPE_PUBLISHABLEKEY }}
           API_URL=${{ secrets.API_URL }}
@@ -65,6 +64,7 @@ jobs:
             /o:"wendryandrade" \
             /d:sonar.host.url="https://sonarcloud.io" \
             /d:sonar.login="${{ secrets.SONAR_TOKEN }}" \
+            /d:sonar.branch.name="${GITHUB_REF_NAME}" \
             /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
             /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
             /d:sonar.coverage.exclusions="**/Migrations/**,**/Resources/**/DTOs/**,**/Resources/**/Requests/**,**/Resources/**/Responses/**,**/Program*.cs" \
