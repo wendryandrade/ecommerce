@@ -76,7 +76,7 @@ jobs:
             -d "project=wendryandrade_ecommerce&name=Ecommerce&organization=wendryandrade" \
             || echo "Project may already exist or creation failed"
           
-          # Disable automatic analysis and enable CI-based analysis
+          # Disable automatic analysis
           curl -X POST "https://sonarcloud.io/api/settings/set" \
             -H "Authorization: Bearer $SONAR_TOKEN" \
             -H "Content-Type: application/x-www-form-urlencoded" \
@@ -93,11 +93,10 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
         run: |
           if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
-                         # PR analysis
-             dotnet sonarscanner begin \
-               /k:"wendryandrade_ecommerce" \
-               /n:"Ecommerce" \
-               /o:"wendryandrade" \
+            dotnet sonarscanner begin \
+              /k:"wendryandrade_ecommerce" \
+              /n:"Ecommerce" \
+              /o:"wendryandrade" \
               /d:sonar.host.url="https://sonarcloud.io" \
               /d:sonar.login="$SONAR_TOKEN" \
               /d:sonar.pullrequest.key="$PR_NUMBER" \
@@ -110,11 +109,10 @@ jobs:
               /d:sonar.test.inclusions="**/*Tests.cs,**/*Test.cs,**/*Spec.cs" \
               /d:sonar.test.exclusions="**/bin/**,**/obj/**,**/TestResults/**"
           else
-                         # Regular branch analysis
-             dotnet sonarscanner begin \
-               /k:"wendryandrade_ecommerce" \
-               /n:"Ecommerce" \
-               /o:"wendryandrade" \
+            dotnet sonarscanner begin \
+              /k:"wendryandrade_ecommerce" \
+              /n:"Ecommerce" \
+              /o:"wendryandrade" \
               /d:sonar.host.url="https://sonarcloud.io" \
               /d:sonar.login="$SONAR_TOKEN" \
               /d:sonar.branch.name="main" \
@@ -143,7 +141,7 @@ jobs:
         run: |
           echo "Checking for coverage files..."
           find . -name "coverage.opencover.xml" -type f
-          echo "Coverage files found:"
+          echo "Coverage files found:" 
           ls -la **/TestResults/**/coverage.opencover.xml || echo "No coverage files found"
 
       - name: End SonarCloud analysis
@@ -151,18 +149,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           REF_NAME: ${{ github.ref_name }}
         run: |
-          # End SonarCloud analysis
           dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" || echo "SonarCloud analysis ended with warnings"
-          
-          # If this is the main branch, ensure it's set as the default branch
-          if [ "$REF_NAME" == "main" ]; then 
-            echo "Ensuring main branch is set as default in SonarCloud"
-                         curl -X POST "https://sonarcloud.io/api/project_branches/rename" \
-               -H "Authorization: Bearer $SONAR_TOKEN" \
-               -H "Content-Type: application/x-www-form-urlencoded" \
-               -d "project=wendryandrade_ecommerce&name=main" \
-               || echo "Default branch setup completed"
-          fi
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
