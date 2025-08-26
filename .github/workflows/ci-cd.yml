@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 env:
   DOTNET_VERSION: '8.0.x'
@@ -67,12 +67,12 @@ jobs:
             -d "project=wendryandrade_ecommerce&name=Ecommerce&organization=wendryandrade" \
             || echo "Project may already exist or creation failed"
           
-          # Set default branch to main
-          curl -X POST "https://sonarcloud.io/api/project_branches/rename" \
+          # Disable automatic analysis and enable CI-based analysis
+          curl -X POST "https://sonarcloud.io/api/settings/set" \
             -H "Authorization: Bearer $SONAR_TOKEN" \
             -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "project=wendryandrade_ecommerce&name=main" \
-            || echo "Default branch setup may have failed"
+            -d "key=sonar.analysis.mode&value=ci&component=wendryandrade_ecommerce" \
+            || echo "Analysis mode setup may have failed"
 
       - name: Begin SonarCloud analysis
         env:
