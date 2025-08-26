@@ -13,7 +13,7 @@ env:
   DOCKER_REGISTRY: ghcr.io
 
 jobs:
-  full-pipeline:
+  build-and-analyze:
     runs-on: ubuntu-latest
 
     steps:
@@ -50,7 +50,7 @@ jobs:
           DEFAULT_INSURANCE_VALUE=0
           EOF
 
-      - name: Start all services
+      - name: Start Docker services
         run: docker compose up --build -d
 
       - name: Install SonarScanner
@@ -58,17 +58,35 @@ jobs:
 
       - name: Begin SonarCloud analysis
         run: |
-          dotnet sonarscanner begin \
-            /k:"ecommerce" \
-            /n:"Ecommerce" \
-            /o:"wendryandrade" \
-            /d:sonar.host.url="https://sonarcloud.io" \
-            /d:sonar.login="${{ secrets.SONAR_TOKEN }}" \
-            /d:sonar.branch.name="${GITHUB_REF_NAME}" \
-            /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
-            /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
-            /d:sonar.coverage.exclusions="**/Migrations/**,**/Resources/**/DTOs/**,**/Resources/**/Requests/**,**/Resources/**/Responses/**,**/Program*.cs" \
-            /d:sonar.sourceEncoding="UTF-8"
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            # PR analysis
+            dotnet sonarscanner begin \
+              /k:"ecommerce" \
+              /n:"Ecommerce" \
+              /o:"wendryandrade" \
+              /d:sonar.host.url="https://sonarcloud.io" \
+              /d:sonar.login="${{ secrets.SONAR_TOKEN }}" \
+              /d:sonar.pullrequest.key="${{ github.event.pull_request.number }}" \
+              /d:sonar.pullrequest.branch="${{ github.head_ref }}" \
+              /d:sonar.pullrequest.base="${{ github.base_ref }}" \
+              /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
+              /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
+              /d:sonar.coverage.exclusions="**/Migrations/**,**/Resources/**/DTOs/**,**/Resources/**/Requests/**,**/Resources/**/Responses/**,**/Program*.cs" \
+              /d:sonar.sourceEncoding="UTF-8"
+          else
+            # Regular branch analysis
+            dotnet sonarscanner begin \
+              /k:"ecommerce" \
+              /n:"Ecommerce" \
+              /o:"wendryandrade" \
+              /d:sonar.host.url="https://sonarcloud.io" \
+              /d:sonar.login="${{ secrets.SONAR_TOKEN }}" \
+              /d:sonar.branch.name="${GITHUB_REF_NAME}" \
+              /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
+              /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
+              /d:sonar.coverage.exclusions="**/Migrations/**,**/Resources/**/DTOs/**,**/Resources/**/Requests/**,**/Resources/**/Responses/**,**/Program*.cs" \
+              /d:sonar.sourceEncoding="UTF-8"
+          fi
 
       - name: Build API
         run: dotnet build ${{ env.SLN_FILE }} --configuration Release --no-incremental
@@ -95,6 +113,6 @@ jobs:
             **/TestResults/**/*.trx
             **/TestResults/**/coverage.opencover.xml
 
-      - name: Cleanup
+      - name: Cleanup Docker
         if: always()
         run: docker compose down -v
