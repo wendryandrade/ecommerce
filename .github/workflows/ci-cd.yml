@@ -26,20 +26,29 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Create .env file
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_KEY: ${{ secrets.JWT_KEY }}
+          JWT_ISSUER: ${{ secrets.JWT_ISSUER }}
+          JWT_AUDIENCE: ${{ secrets.JWT_AUDIENCE }}
+          STRIPE_SECRETKEY: ${{ secrets.STRIPE_SECRETKEY }}
+          STRIPE_PUBLISHABLEKEY: ${{ secrets.STRIPE_PUBLISHABLEKEY }}
+          API_URL: ${{ secrets.API_URL }}
+          API_TOKEN: ${{ secrets.API_TOKEN }}
         run: |
           cat > .env << EOF
-          DB_PASS=${{ secrets.DB_PASSWORD }}
+          DB_PASS=$DB_PASSWORD
           DB_HOST=ecommerce-db
           DB_NAME=EcommerceDB
           DB_USER=sa
           DB_PORT=1433
-          JWT_KEY=${{ secrets.JWT_KEY }}
-          JWT_ISSUER=${{ secrets.JWT_ISSUER }}
-          JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
-          STRIPE_SECRETKEY=${{ secrets.STRIPE_SECRETKEY }}
-          STRIPE_PUBLISHABLEKEY=${{ secrets.STRIPE_PUBLISHABLEKEY }}
-          API_URL=${{ secrets.API_URL }}
-          API_TOKEN=${{ secrets.API_TOKEN }}
+          JWT_KEY=$JWT_KEY
+          JWT_ISSUER=$JWT_ISSUER
+          JWT_AUDIENCE=$JWT_AUDIENCE
+          STRIPE_SECRETKEY=$STRIPE_SECRETKEY
+          STRIPE_PUBLISHABLEKEY=$STRIPE_PUBLISHABLEKEY
+          API_URL=$API_URL
+          API_TOKEN=$API_TOKEN
           DEFAULT_ORIGIN_ZIPCODE=01001000
           SERVICES=1,2,18
           USE_MOCK_DATA=false
