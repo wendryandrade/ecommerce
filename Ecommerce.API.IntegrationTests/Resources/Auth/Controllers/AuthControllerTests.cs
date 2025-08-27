@@ -63,5 +63,14 @@ namespace Ecommerce.API.IntegrationTests.Resources.Auth.Controllers
             Assert.NotNull(loginResponse?.Token);
             Assert.NotEmpty(loginResponse.Token);
         }
+
+        [Fact]
+        // Deveria retornar Unauthorized (401) quando as credenciais são inválidas
+        public async Task Login_ShouldReturnUnauthorized_WhenInvalidCredentials()
+        {
+            var loginRequest = new LoginRequest { Email = "invalid@test.com", Password = "wrong" };
+            var response = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
     }
 }

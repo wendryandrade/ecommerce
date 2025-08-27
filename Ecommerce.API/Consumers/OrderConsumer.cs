@@ -13,6 +13,7 @@ namespace Ecommerce.API.Consumers
         private readonly IProductRepository _productRepository;
         private readonly IShippingService _shippingService;
         private readonly IPaymentService _paymentService;
+        private readonly IPublishEndpoint _publishEndpoint;
 
         // O Consumer recebe todas as dependências que o CommandHandler usava
         public OrderConsumer(
@@ -20,13 +21,15 @@ namespace Ecommerce.API.Consumers
             IOrderRepository orderRepository,
             IProductRepository productRepository,
             IShippingService shippingService,
-            IPaymentService paymentService)
+            IPaymentService paymentService,
+            IPublishEndpoint publishEndpoint)
         {
             _logger = logger;
             _orderRepository = orderRepository;
             _productRepository = productRepository;
             _shippingService = shippingService;
             _paymentService = paymentService;
+            _publishEndpoint = publishEndpoint;
         }
 
         // Este é o método que o MassTransit chama quando uma mensagem chega na fila
@@ -114,6 +117,14 @@ namespace Ecommerce.API.Consumers
 
             await _orderRepository.AddAsync(order, context.CancellationToken);
             _logger.LogInformation("Pedido {OrderId} processado e salvo com sucesso!", message.OrderId);
+
+            // Publica o evento de pedido processado para encadear o envio de e-mail
+            await _publishEndpoint.Publish(new OrderProcessedEvent
+            {
+                OrderId = order.Id,
+                UserId = order.UserId,
+                TotalAmount = order.TotalAmount
+            }, context.CancellationToken);
         }
     }
 }

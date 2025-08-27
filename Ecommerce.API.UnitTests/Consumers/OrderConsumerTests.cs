@@ -14,6 +14,7 @@ namespace Ecommerce.API.UnitTests.Consumers
         private readonly Mock<IProductRepository> _mockProductRepository;
         private readonly Mock<IShippingService> _mockShippingService;
         private readonly Mock<IPaymentService> _mockPaymentService;
+        private readonly Mock<IPublishEndpoint> _mockPublishEndpoint;
         private readonly OrderConsumer _consumer;
 
         public OrderConsumerTests()
@@ -22,6 +23,7 @@ namespace Ecommerce.API.UnitTests.Consumers
             _mockProductRepository = new Mock<IProductRepository>();
             _mockShippingService = new Mock<IShippingService>();
             _mockPaymentService = new Mock<IPaymentService>();
+            _mockPublishEndpoint = new Mock<IPublishEndpoint>();
             var mockLogger = new Mock<ILogger<OrderConsumer>>();
 
             _consumer = new OrderConsumer(
@@ -29,7 +31,8 @@ namespace Ecommerce.API.UnitTests.Consumers
                 _mockOrderRepository.Object,
                 _mockProductRepository.Object,
                 _mockShippingService.Object,
-                _mockPaymentService.Object
+                _mockPaymentService.Object,
+                _mockPublishEndpoint.Object
             );
         }
 
@@ -47,11 +50,12 @@ namespace Ecommerce.API.UnitTests.Consumers
             };
 
             _mockProductRepository.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync(new Product { StockQuantity = 10 });
-            _mockShippingService.Setup(s => s.CalculateShippingCostFromStoreAsync(It.IsAny<string>())).ReturnsAsync(20.0m);
+            _mockShippingService.Setup(s => s.CalculateShippingWithDetailsFromStoreAsync(It.IsAny<string>())).ReturnsAsync((10m, 3, false, new AddressInfo(), new AddressInfo()));
             _mockPaymentService.Setup(p => p.ProcessPaymentAsync(It.IsAny<decimal>(), "brl", It.IsAny<string>())).ReturnsAsync("pi_mock_123");
 
             var consumeContext = new Mock<ConsumeContext<OrderSubmissionEvent>>();
             consumeContext.Setup(c => c.Message).Returns(orderEvent);
+            consumeContext.Setup(c => c.CancellationToken).Returns(CancellationToken.None);
 
             // Act
             await _consumer.Consume(consumeContext.Object);
@@ -59,6 +63,7 @@ namespace Ecommerce.API.UnitTests.Consumers
             // Assert
             _mockOrderRepository.Verify(r => r.AddAsync(It.IsAny<Order>(), It.IsAny<CancellationToken>()), Times.Once);
             _mockProductRepository.Verify(r => r.UpdateAsync(It.IsAny<Product>()), Times.Once);
+            _mockPublishEndpoint.Verify(p => p.Publish(It.IsAny<OrderProcessedEvent>(), It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }

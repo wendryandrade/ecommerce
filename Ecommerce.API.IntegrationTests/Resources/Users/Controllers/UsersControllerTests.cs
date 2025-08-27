@@ -45,5 +45,56 @@ namespace Ecommerce.API.IntegrationTests.Resources.Users.Controllers
             var userResponse = await response.Content.ReadFromJsonAsync<UserResponse>();
             Assert.Equal("customer@test.com", userResponse!.Email);
         }
+
+        [Fact]
+        public async Task GetAll_ShouldReturnOk_WhenAdmin()
+        {
+            var loginRequest = new LoginRequest { Email = "admin@test.com", Password = "Password123!" };
+            var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+            var token = (await loginResponse.Content.ReadFromJsonAsync<LoginResponse>())!.Token;
+            _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await _client.GetAsync("/api/users");
+            response.EnsureSuccessStatusCode();
+        }
+
+        [Fact]
+        public async Task GetAll_ShouldReturnForbidden_WhenCustomer()
+        {
+            var loginRequest = new LoginRequest { Email = "customer@test.com", Password = "Password123!" };
+            var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+            var token = (await loginResponse.Content.ReadFromJsonAsync<LoginResponse>())!.Token;
+            _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await _client.GetAsync("/api/users");
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        }
+
+        [Fact]
+        public async Task GetById_ShouldReturnOk_WhenUserExists()
+        {
+            var loginRequest = new LoginRequest { Email = "customer@test.com", Password = "Password123!" };
+            var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+            var token = (await loginResponse.Content.ReadFromJsonAsync<LoginResponse>())!.Token;
+            _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var userId = Guid.Parse("00000000-0000-0000-0000-000000000002");
+            var response = await _client.GetAsync($"/api/users/{userId}");
+            response.EnsureSuccessStatusCode();
+            var user = await response.Content.ReadFromJsonAsync<UserResponse>();
+            Assert.Equal("customer@test.com", user!.Email);
+        }
+
+        [Fact]
+        public async Task GetById_ShouldReturnNotFound_WhenUserDoesNotExist()
+        {
+            var loginRequest = new LoginRequest { Email = "admin@test.com", Password = "Password123!" };
+            var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+            var token = (await loginResponse.Content.ReadFromJsonAsync<LoginResponse>())!.Token;
+            _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await _client.GetAsync($"/api/users/{Guid.NewGuid()}");
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
     }
 }

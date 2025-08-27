@@ -19,36 +19,33 @@ namespace Ecommerce.Infrastructure.Auth
 
         public string GenerateJwtToken(User user)
         {
-            var jwtKey = _configuration["Jwt:Key"];
+            // Lê da configuração e faz fallback para variáveis de ambiente, alinhado com Program.cs
+            var jwtKey = _configuration["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY");
+            var issuer = _configuration["Jwt:Issuer"] ?? Environment.GetEnvironmentVariable("JWT_ISSUER");
+            var audience = _configuration["Jwt:Audience"] ?? Environment.GetEnvironmentVariable("JWT_AUDIENCE");
+
             if (string.IsNullOrEmpty(jwtKey))
             {
                 throw new InvalidOperationException("Chave JWT não configurada");
             }
 
-            // Busca a chave secreta do appsettings.json
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-
-            // Cria as credenciais para assinar o token
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)); // NOSONAR: chave vem de env/secret manager; não há segredo hardcoded no repositório
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            // Adiciona as "claims" - informações que queremos guardar dentro do token
             var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()), // ID do usuário
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                // Inclui a Role no token
-                new Claim(ClaimTypes.Role, user.Role) 
+                new Claim(ClaimTypes.Role, user.Role)
             };
 
-            // Cria o token com todas as informações
             var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
+                issuer: issuer,
+                audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(2), // Define a validade do token (ex: 2 horas)
+                expires: DateTime.UtcNow.AddHours(2),
                 signingCredentials: credentials);
 
-            // Escreve o token como uma string
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
