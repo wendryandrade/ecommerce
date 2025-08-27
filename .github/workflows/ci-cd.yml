@@ -91,12 +91,7 @@ jobs:
                /d:sonar.login="$SONAR_TOKEN" \
                /d:sonar.pullrequest.key="$PR_NUMBER" \
                /d:sonar.pullrequest.branch="$HEAD_REF" \
-               /d:sonar.pullrequest.base="$BASE_REF" \
-               /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
-               /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
-               /d:sonar.scm.disabled="true" \
-               /d:sonar.coverage.exclusions="**/Program.cs,**/Program.Partials.cs,**/Startup.cs,**/Migrations/**,**/TestResults/**,**/bin/**,**/obj/**" \
-               /d:sonar.newCodePeriod="previous_version"
+               /d:sonar.pullrequest.base="$BASE_REF"
           else
             echo "Running full main branch analysis..."
                          dotnet sonarscanner begin \
@@ -105,12 +100,7 @@ jobs:
                /o:"wendryandrade" \
                /d:sonar.host.url="https://sonarcloud.io" \
                /d:sonar.login="$SONAR_TOKEN" \
-               /d:sonar.branch.name="main" \
-               /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
-               /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
-               /d:sonar.scm.disabled="true" \
-               /d:sonar.coverage.exclusions="**/Program.cs,**/Program.Partials.cs,**/Startup.cs,**/Migrations/**,**/TestResults/**,**/bin/**,**/obj/**" \
-               /d:sonar.newCodePeriod="previous_version"
+               /d:sonar.branch.name="main"
           fi
 
       - name: Build API
