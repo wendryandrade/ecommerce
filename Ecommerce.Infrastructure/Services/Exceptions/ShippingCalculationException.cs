@@ -3,7 +3,7 @@ using System.Runtime.Serialization;
 
 namespace Ecommerce.Infrastructure.Services.Exceptions
 {
-    [Serializable] // necessário para serialização
+    [Serializable] // necessï¿½rio para serializaï¿½ï¿½o
     public class ShippingCalculationException : Exception
     {
         public ShippingCalculationException()
@@ -20,7 +20,7 @@ namespace Ecommerce.Infrastructure.Services.Exceptions
         {
         }
 
-        // Construtor para serialização
+        // Construtor para serializaï¿½ï¿½o
         protected ShippingCalculationException(SerializationInfo info, StreamingContext context) 
             : base(info, context)
         {
