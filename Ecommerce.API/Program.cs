@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Ecommerce.API.Extensions;
+using Ecommerce.Infrastructure.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +36,15 @@ MapEnv("Jwt:Audience", "JWT_AUDIENCE");
 // Stripe
 MapEnv("Stripe:SecretKey", "STRIPE_SECRETKEY");
 MapEnv("Stripe:PublishableKey", "STRIPE_PUBLISHABLEKEY");
+
+// Email (SMTP)
+MapEnv("EmailSettings:SmtpServer", "SMTP_SERVER");
+MapEnv("EmailSettings:SmtpPort", "SMTP_PORT");
+MapEnv("EmailSettings:SmtpUsername", "SMTP_USERNAME");
+MapEnv("EmailSettings:SmtpPassword", "SMTP_PASSWORD");
+MapEnv("EmailSettings:FromEmail", "SMTP_FROM_EMAIL");
+MapEnv("EmailSettings:FromName", "SMTP_FROM_NAME");
+MapEnv("EmailSettings:EnableSsl", "SMTP_ENABLE_SSL");
 
 // Melhor Envio
 MapEnv("MelhorEnvio:ApiUrl", "API_URL");
@@ -149,6 +159,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IShippingService, MelhorEnvioShippingService>();
 builder.Services.AddScoped<IPaymentService, StripePaymentService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+
+// Bind de configurações de Email
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
 // Configurar Autenticação JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

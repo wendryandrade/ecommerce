@@ -149,6 +149,25 @@ namespace Ecommerce.API.UnitTests.Resources.Orders.Controllers
 		}
 
 		[Fact]
+		public async Task CreateOrder_ShouldReturnBadRequest_WhenCartEmptyDetectedByController()
+		{
+			// Arrange: authenticated user already set in constructor
+			var cartRepo = new Mock<ICartRepository>();
+			cartRepo.Setup(r => r.GetByUserIdAsync(It.IsAny<Guid>())).ReturnsAsync((Ecommerce.Domain.Entities.Cart?)null);
+			var req = new CreateOrderRequest
+			{
+				ShippingAddress = new CreateOrderAddressRequest { PostalCode = "01001000" },
+				PaymentDetails = new CreateOrderPaymentRequest { PaymentMethod = PaymentMethod.CreditCard }
+			};
+
+			// Act
+			var res = await _controller.CreateOrder(req, cartRepo.Object);
+
+			// Assert
+			Assert.IsType<BadRequestObjectResult>(res);
+		}
+
+		[Fact]
 		public async Task CalculateShipping_ShouldReturnOk_WithShippingCost()
 		{
 			// Arrange

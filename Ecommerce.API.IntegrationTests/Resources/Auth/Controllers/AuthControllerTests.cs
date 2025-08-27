@@ -25,7 +25,7 @@ namespace Ecommerce.API.IntegrationTests.Resources.Auth.Controllers
             {
                 FirstName = "Test",
                 LastName = "User",
-                Email = "new.register@email.com",
+                Email = $"new.register+{Guid.NewGuid():N}@email.com",
                 Password = "Password123!"
             };
 
@@ -71,6 +71,22 @@ namespace Ecommerce.API.IntegrationTests.Resources.Auth.Controllers
             var loginRequest = new LoginRequest { Email = "invalid@test.com", Password = "wrong" };
             var response = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
+
+        [Fact]
+        // Deveria retornar BadRequest (400) quando o e-mail já existe
+        public async Task Register_ShouldReturnBadRequest_WhenEmailAlreadyExists()
+        {
+            var request = new CreateUserRequest
+            {
+                FirstName = "Admin",
+                LastName = "User",
+                Email = "admin@test.com",
+                Password = "Password123!"
+            };
+
+            var response = await _client.PostAsJsonAsync("/api/auth/register", request);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
     }
 }
