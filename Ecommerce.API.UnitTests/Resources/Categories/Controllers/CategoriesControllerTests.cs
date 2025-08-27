@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ecommerce.API.Resources.Categories.Controllers;
 using Ecommerce.API.Resources.Categories.DTOs.Requests;
+using Ecommerce.API.Resources.Categories.DTOs.Responses;
 using Ecommerce.Application.Features.Categories.DTOs;
 using Ecommerce.Application.Features.Categories.Queries;
 using Ecommerce.Application.Features.Categories.Commands;
