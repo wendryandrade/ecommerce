@@ -1,146 +1,154 @@
-# Ecommerce - Setup Local com Docker
+# 🛍️ Ecommerce
 
-Este guia explica como rodar o projeto **Ecommerce** localmente usando Docker, incluindo API, banco de dados, RabbitMQ e HTTPS opcional.
+Este projeto é uma **API de ecommerce** desenvolvida em **.NET 8** e banco de dados **SQL Server**, utilizando **Entity Framework Core (EF Core)** como ORM.
 
----
+A aplicação segue boas práticas utilizando o padrão **Clean Architecture**, utiliza **CQRS** (Command Query Responsibility Segregation), testes unitários e de integração utilizando **XUnit**, processamento assíncrono com mensageria utilizando **RabbitMQ**, integrações com serviços externos de pagamento **Stripe**, frete **MelhorEnvio** e CEP **ViaCEP**.
 
-## Pré-requisitos
-
-* [Docker Desktop](https://www.docker.com/products/docker-desktop) (Windows/Mac) ou Docker Engine (Linux)
-* Git
-* .NET 8 SDK (para gerar certificados HTTPS, se desejar)
+Toda a aplicação pode ser executada localmente de forma simples utilizando **Docker Compose**.
 
 ---
 
-## Passo a passo para rodar o sistema
+## 🚀 Funcionalidades
 
-### 1. Instalar Docker
+A API oferece os principais recursos de um ecommerce:
 
-Baixe e instale o Docker Desktop (Windows/Mac) ou Docker Engine (Linux).
+- 🔑 **Autenticação & Autorização**  
+  - Registro de usuários  
+  - Login com **JWT**  
+  - Controle de acesso por roles (**Admin** / **Customer**)  
+
+- 📦 **Gerenciamento de Produtos e Categorias**  
+  - Listagem, criação, atualização e exclusão  
+  - Acesso restrito a administradores  
+
+- 🛒 **Carrinho de Compras**  
+  - Adicionar, remover e gerenciar quantidade de itens  
+
+- 💳 **Checkout**  
+  - Finalização de compra com dados de entrega, CEP e pagamento  
+
+- ⚡ **Pedidos Assíncronos**  
+  - Checkout publica evento em fila 
+  - Não bloqueia o fluxo  
+
+- 🔗 **Integrações Externas**  
+  - **Frete:** cálculo de envio e informações de CEP 
+  - **Pagamento:** processamento de transações 
 
 ---
 
-### 2. Clonar o repositório
+## 🛠️ Tecnologias Utilizadas
 
+- .NET 8  
+- SQL Server  
+- Entity Framework Core (EF Core)  
+- RabbitMQ  
+- Stripe, MelhorEnvio, ViaCEP  
+- XUnit   
+- SonarQube Cloud
+- Docker e Docker Compose
+
+---
+
+## ⚙️ Como Executar o Projeto
+
+### 🔧 Pré-requisitos
+- [Docker Desktop](https://www.docker.com/products/docker-desktop) ou Docker Engine (Linux)  
+- [Git](https://git-scm.com/)  
+
+### 📂 1. Clonar o Repositório
 ```bash
 git clone https://github.com/wendryandrade/ecommerce.git
 cd ecommerce
 ```
 
----
-
-### 3. Configurar variáveis de ambiente
-
-Antes de buildar os containers, copie o arquivo de exemplo `.env.example` para `.env`:
-
+### 🔑 2. Configurar Variáveis de Ambiente
+Copie o arquivo de exemplo `.env.example` para `.env`:
 ```bash
 cp .env.example .env
 ```
 
-Edite o `.env` para ajustar as integrações externas:
+Edite com suas credenciais:  
+- `DB_PASS=Your_password123!`  
+- `JWT_KEY=...`  
+- `STRIPE_SECRETKEY=...`  
+- `API_TOKEN=...`  
 
-* **Stripe**: altere `STRIPE_SECRETKEY` e `STRIPE_PUBLISHABLEKEY` com suas chaves da conta Stripe.
-* **Melhor Envio**: altere `API_TOKEN` com seu token de acesso da conta Melhor Envio.
+⚠️ **Atenção:** o `.env` deve estar atualizado para que as integrações funcionem corretamente.
 
-> ⚠️ É importante manter o `.env` atualizado com suas chaves para que as integrações funcionem corretamente.
-
----
-
-### 4. Rodar os containers
-
-Na raiz do projeto, execute:
-
+### 🐳 3. Subir os Serviços com Docker
 ```bash
 docker compose up --build -d
 ```
+Isso irá iniciar:
+- API .NET  
+- SQL Server  
+- RabbitMQ  
+- Aplicar migrations e seed automaticamente com **EF Core**
 
-Isso iniciará:
-
-* **API** (`Ecommerce.API`)
-* **SQL Server**
-* **RabbitMQ**
-
----
-
-### 5. Configurar HTTPS (Opcional)
-
-Para habilitar HTTPS no container da API:
-
-1. Crie a pasta `./certs` na raiz do projeto.
-2. Gere um certificado de desenvolvimento:
-
-```bash
-dotnet dev-certs https -ep ./certs/aspnetapp.pfx -p Pass@word1
-```
-
-3. Confie no certificado para remover aviso de "não seguro":
-
-```bash
-dotnet dev-certs https --trust
-```
-
-4. Recrie os containers para aplicar o certificado:
-
-```bash
-docker compose up --build -d
-```
+### 🔐 4. Configurar HTTPS
+Caso precise consumir APIs externas com HTTPS (Opcional):  
+1. Criar pasta `certs` na raiz  
+2. Gerar certificado:
+   ```bash
+   dotnet dev-certs https -ep ./certs/aspnetapp.pfx -p Pass@word1
+   dotnet dev-certs https --trust
+   ```
+3. Recriar containers:
+   ```bash
+   docker compose up --build -d
+   ```
 
 **Notas importantes:**
 
-* A senha do certificado deve ser a mesma configurada no `entrypoint.sh` (`Pass@word1`).
-* Em Linux/Mac, use o caminho equivalente (ex.: `~/.aspnet/https`) e adicione manualmente o certificado ao sistema (`update-ca-certificates`).
-* Sempre reconstrua a imagem após gerar o certificado.
+- A senha do certificado deve ser a mesma configurada no entrypoint.sh (Pass@word1).
+- Em Linux/Mac, use o caminho equivalente (ex.: ~/.aspnet/https) e adicione manualmente o certificado ao sistema (update-ca-certificates).
+- Sempre recrie o container após gerar o certificado.
+---
+
+## 🌐 Acessos e Interfaces
+
+- **Swagger (API Docs):**  
+  - `http://localhost:8080/swagger/index.html`  
+  - `https://localhost:8081/swagger/index.html` (com HTTPS)  
+
+- **RabbitMQ:**  
+  - `http://localhost:15672`  
+  - Usuário: `guest` / Senha: `guest`  
+
+- **SQL Server:**  
+  - `localhost:1433`  
+  - Credenciais conforme `.env`  
+
+🔑 Usuário Admin gerado automaticamente (via **DatabaseSeeder**):  
+- E-mail: `admin@ecommerce.com`  
+- Senha: `admin123`  
 
 ---
 
-### 6. Acessos locais
+## 📊 Testes e Qualidade de Código
 
-* **API (Swagger):** [https://localhost:8081/swagger/index.html](https://localhost:8081/swagger/index.html)
-* **RabbitMQ:** [http://localhost:15672](http://localhost:15672)
+- Testes **unitários e de integração** com **XUnit**  
+
+- Para rodar via Docker, execute:
+
+  `docker run --rm -v ${PWD}:/src -w /src mcr.microsoft.com/dotnet/sdk:8.0 dotnet test`
+
+- **CI/CD com GitHub Actions** → build, testes e análise no **SonarCloud**  
+
+ 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=wendryandrade_ecommerce&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=wendryandrade_ecommerce)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=wendryandrade_ecommerce&metric=coverage)](https://sonarcloud.io/summary/new_code?id=wendryandrade_ecommerce)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=wendryandrade_ecommerce&metric=bugs)](https://sonarcloud.io/summary/new_code?id=wendryandrade_ecommerce)
+
+> 🔗 [Ver análise completa no SonarCloud](https://sonarcloud.io/project/overview?id=wendryandrade_ecommerce)
 
 ---
 
-### 7. Parar e remover containers
+## 🛑 Parar e Remover Containers
 
-Para parar os containers e limpar volumes:
+Para parar todos os containers e remover os volumes associados, execute:
 
 ```bash
 docker compose down -v
 ```
-
----
-
-### Informações adicionais
-
-- SonarQube (porta 9000)
-  - Acesse http://localhost:9000
-  - Login padrão: admin
-  - Senha padrão: admin
-  - No primeiro acesso, o SonarQube exige a troca da senha. Defina uma nova senha e guarde em local seguro.
-
-- SonarCloud (Análise de Código)
-  - O projeto está configurado para análise automática no SonarCloud
-  - Para configurar inicialmente:
-    1. Obtenha um token do SonarCloud (https://sonarcloud.io/account/security)
-    2. Configure o token como secret `SONAR_TOKEN` no GitHub
-    3. Execute o script de setup: `./scripts/setup-sonarcloud.sh`
-    4. O CI/CD pipeline irá executar análises automaticamente
-
-- Ajuste de line endings do entrypoint
-  - Se ocorrer erro "/entrypoint.sh: not found" ao subir os containers no Linux/WSL, converta o arquivo Ecommerce.API/entrypoint.sh para final de linha LF (Unix):
-    - VS Code: abra o arquivo, no canto inferior direito selecione CRLF e altere para LF, salve.
-    - Ou via terminal (em ambientes que possuam dos2unix): dos2unix Ecommerce.API/entrypoint.sh
-
-- .env.example
-  - O arquivo .env.example contém variáveis de ambiente para facilitar a configuração local e do docker-compose.
-  - Foi incluída uma chave JWT válida para testes: ajuste conforme necessário antes de usar em produção.
-
-
-### Observações
-
-* Todos os serviços rodam em containers separados, mas podem se comunicar entre si usando os nomes dos serviços definidos no `docker-compose.yml`.
-* Se ocorrerem problemas de porta ocupada, ajuste os mapeamentos no `docker-compose.yml`.
-* A API aplica migrations automaticamente ao iniciar.
-* Sempre atualize o `.env` ao alterar chaves de integração ou outras configurações.
-
----
