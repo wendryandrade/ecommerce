@@ -1,4 +1,5 @@
 ﻿using Ecommerce.Domain.Entities;
+using Xunit;
 
 namespace Ecommerce.Domain.UnitTests.Entities
 {
@@ -47,6 +48,30 @@ namespace Ecommerce.Domain.UnitTests.Entities
 
             // Assert
             Assert.Equal(newPrice, product.Price);
+        }
+
+        [Fact]
+        public void DecreaseStock_ShouldDecrease_ByQuantity()
+        {
+            var p = new Product { StockQuantity = 10 };
+            p.DecreaseStock(3);
+            Assert.Equal(7, p.StockQuantity);
+        }
+
+        [Fact]
+        public void IncreaseStock_ShouldIncrease_ByQuantity()
+        {
+            var p = new Product { StockQuantity = 1 };
+            p.IncreaseStock(4);
+            Assert.Equal(5, p.StockQuantity);
+        }
+
+        [Fact]
+        public void ChangePrice_ShouldSet_NewPrice()
+        {
+            var p = new Product { Price = 5m };
+            p.ChangePrice(12.34m);
+            Assert.Equal(12.34m, p.Price);
         }
     }
 }

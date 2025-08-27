@@ -51,5 +51,45 @@ namespace Ecommerce.API.IntegrationTests.Resources.Categories.Controllers
             response.EnsureSuccessStatusCode();
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         }
+
+        [Fact]
+        // Deveria retornar Forbidden (403) quando um usuário Customer tenta criar uma categoria
+        public async Task Create_Category_ShouldReturnForbidden_WhenUserIsCustomer()
+        {
+            // Arrange: Faz login com o usuário Customer para obter um token
+            var loginRequest = new LoginRequest { Email = "customer@test.com", Password = "Password123!" };
+            var loginResponse = await _client.PostAsJsonAsync("/api/auth/login", loginRequest);
+            var token = (await loginResponse.Content.ReadFromJsonAsync<LoginResponse>())!.Token;
+            _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var createRequest = new CreateCategoryRequest
+            {
+                Name = "Cat",
+                Description = "Desc"
+            };
+
+            // Act
+            var response = await _client.PostAsJsonAsync("/api/categories", createRequest);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        }
+
+        [Fact]
+        // Deveria retornar Unauthorized (401) quando não há token
+        public async Task Create_Category_ShouldReturnUnauthorized_WhenNoToken()
+        {
+            var createRequest = new CreateCategoryRequest
+            {
+                Name = "Cat",
+                Description = "Desc"
+            };
+
+            // Act
+            var response = await _client.PostAsJsonAsync("/api/categories", createRequest);
+
+            // Assert
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        }
     }
 }
