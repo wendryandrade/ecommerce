@@ -93,7 +93,7 @@ jobs:
                /d:sonar.pullrequest.base="$BASE_REF" \
                /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
                /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
-               /d:sonar.scm.disabled="true" \
+               /d:sonar.scm.disabled="false" \
                /d:sonar.coverage.exclusions="**/Program.cs,**/Program.Partials.cs,**/Startup.cs,**/Migrations/**,**/TestResults/**,**/bin/**,**/obj/**" \
                /d:sonar.coverage.aggregate="true" \
                /d:sonar.coverage.forceZeroCoverage="false" \
@@ -110,7 +110,7 @@ jobs:
                /d:sonar.branch.name="main" \
                /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
                /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
-               /d:sonar.scm.disabled="true" \
+               /d:sonar.scm.disabled="false" \
                /d:sonar.coverage.exclusions="**/Program.cs,**/Program.Partials.cs,**/Startup.cs,**/Migrations/**,**/TestResults/**,**/bin/**,**/obj/**" \
                /d:sonar.coverage.aggregate="true" \
                /d:sonar.coverage.forceZeroCoverage="false" \
