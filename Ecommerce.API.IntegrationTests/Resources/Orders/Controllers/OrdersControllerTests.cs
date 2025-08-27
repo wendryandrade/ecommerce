@@ -105,7 +105,6 @@ namespace Ecommerce.API.IntegrationTests.Resources.Orders.Controllers
                 response.EnsureSuccessStatusCode();
 
                 // --- Aguarda consumo do evento ---
-                // Aguarda o consumo do evento com timeout
                 var consumed = false;
                 var eventTimeout = TimeSpan.FromSeconds(10);
                 var eventStart = DateTime.UtcNow;
@@ -135,6 +134,13 @@ namespace Ecommerce.API.IntegrationTests.Resources.Orders.Controllers
 
                 Assert.NotNull(orderInDb);
                 Assert.Equal(user.Id, orderInDb!.UserId);
+
+                // --- Verifica que EmailConsumer recebeu OrderProcessedEvent ---
+                var processedConsumed = await harness.Consumed.Any<OrderProcessedEvent>();
+                Assert.True(processedConsumed, "OrderProcessedEvent não foi publicado/consumido");
+
+                // Opcional: verificar chamada do serviço de e-mail
+                _factory.MockEmailService.Verify(e => e.SendOrderConfirmationAsync(orderInDb!.UserId, orderInDb.Id, orderInDb.TotalAmount, It.IsAny<CancellationToken>()), Times.AtLeastOnce);
             }
             finally
             {

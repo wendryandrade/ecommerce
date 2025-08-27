@@ -29,7 +29,7 @@ namespace Ecommerce.Infrastructure.Auth
                 throw new InvalidOperationException("Chave JWT não configurada");
             }
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)); // NOSONAR: chave vem de env/secret manager; não há segredo hardcoded no repositório
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new List<Claim>

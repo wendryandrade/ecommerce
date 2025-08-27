@@ -25,6 +25,7 @@ namespace Ecommerce.API.IntegrationTests
         // Mocks públicos
         public readonly Mock<IShippingService> MockShippingService = new();
         public readonly Mock<IPaymentService> MockPaymentService = new();
+        public readonly Mock<IEmailService> MockEmailService = new();
 
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
@@ -49,9 +50,13 @@ namespace Ecommerce.API.IntegrationTests
                 var paymentDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IPaymentService));
                 if (paymentDescriptor != null) services.Remove(paymentDescriptor);
 
+                var emailDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IEmailService));
+                if (emailDescriptor != null) services.Remove(emailDescriptor);
+
                 // Injetar mocks
                 services.AddScoped(_ => MockShippingService.Object);
                 services.AddScoped(_ => MockPaymentService.Object);
+                services.AddScoped(_ => MockEmailService.Object);
 
                 // Remover DbContext real
                 var dbContextDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
@@ -81,6 +86,7 @@ namespace Ecommerce.API.IntegrationTests
                 services.AddMassTransitTestHarness(x =>
                 {
                     x.AddConsumer<OrderConsumer>();
+                    x.AddConsumer<EmailConsumer>();
                 });
 
                 // Popula o banco com dados iniciais
