@@ -366,7 +366,6 @@ namespace Ecommerce.Infrastructure.Persistence.Seeds
             var users = await _context.Users.Where(u => u.Role == "Customer").ToListAsync();
             
             var addresses = new List<Address>();
-            var rng = new Random();
 
             // Criar endereços para cada usuário customer
             var userIds = users.Select(u => u.Id).ToList();
@@ -377,23 +376,23 @@ namespace Ecommerce.Infrastructure.Persistence.Seeds
                 {
                     Id = Guid.NewGuid(),
                     UserId = userId,
-                    Street = $"Rua das Flores, {rng.Next(100, 999)} - Apto {rng.Next(1, 50)}, Centro",
+                    Street = $"Rua das Flores, {GetSecureRandomInt(100, 999)} - Apto {GetSecureRandomInt(1, 50)}, Centro",
                     City = "São Paulo",
                     State = "SP",
-                    PostalCode = $"01234-{rng.Next(100, 999)}"
+                    PostalCode = $"01234-{GetSecureRandomInt(100, 999)}"
                 });
 
                 // Endereço secundário do usuário (opcional)
-                if (rng.Next(2) == 1) // 50% de chance
+                if (GetSecureRandomInt(0, 2) == 1) // 50% de chance
                 {
                     addresses.Add(new Address
                     {
                         Id = Guid.NewGuid(),
                         UserId = userId,
-                        Street = $"Avenida Paulista, {rng.Next(1000, 2000)} - Sala {rng.Next(100, 300)}, Bela Vista",
+                        Street = $"Avenida Paulista, {GetSecureRandomInt(1000, 2000)} - Sala {GetSecureRandomInt(100, 300)}, Bela Vista",
                         City = "São Paulo",
                         State = "SP",
-                        PostalCode = $"01310-{rng.Next(100, 999)}"
+                        PostalCode = $"01310-{GetSecureRandomInt(100, 999)}"
                     });
                 }
             }
@@ -412,8 +411,6 @@ namespace Ecommerce.Infrastructure.Persistence.Seeds
             
             var carts = new List<Cart>();
             var cartItems = new List<CartItem>();
-
-            var rng = new Random();
             foreach (var user in users)
             {
                 var cart = new Cart
@@ -424,7 +421,7 @@ namespace Ecommerce.Infrastructure.Persistence.Seeds
                 carts.Add(cart);
 
                 // Adicionar 1-3 itens aleatórios ao carrinho (garante pelo menos 1)
-                var itemCount = rng.Next(1, 4);
+                var itemCount = GetSecureRandomInt(1, 4);
                 
                 for (int i = 0; i < itemCount; i++)
                 {
@@ -434,7 +431,7 @@ namespace Ecommerce.Infrastructure.Persistence.Seeds
                         Id = Guid.NewGuid(),
                         CartId = cart.Id,
                         ProductId = product.Id,
-                        Quantity = rng.Next(1, 4),
+                        Quantity = GetSecureRandomInt(1, 4),
                         UnitPrice = product.Price
                     });
                 }
@@ -464,8 +461,6 @@ namespace Ecommerce.Infrastructure.Persistence.Seeds
             var orderItems = new List<OrderItem>();
             var payments = new List<Payment>();
             var shippings = new List<Shipping>();
-
-            var rng = new Random();
             var orderIndex = 0;
             foreach (var userId in userIds)
             {
@@ -476,27 +471,27 @@ namespace Ecommerce.Infrastructure.Persistence.Seeds
                     continue;
                 }
                 
-                var userAddress = userAddresses[rng.Next(userAddresses.Count)]; // Escolher endereço do usuário
+                var userAddress = userAddresses[GetSecureRandomInt(0, userAddresses.Count)]; // Escolher endereço do usuário
                 
                 var order = new Order
                 {
                     Id = Guid.NewGuid(),
                     UserId = userId,
                     ShippingAddressId = userAddress.Id,
-                    OrderDate = DateTime.UtcNow.AddDays(-rng.Next(1, 30)), // Pedido de 1-30 dias atrás
+                    OrderDate = DateTime.UtcNow.AddDays(-GetSecureRandomInt(1, 30)), // Pedido de 1-30 dias atrás
                     TotalAmount = 0, // Será calculado
                     Status = OrderStatus.Pending
                 };
                 orders.Add(order);
 
                 // Adicionar 1-2 itens ao pedido
-                var itemCount = rng.Next(1, 3);
+                var itemCount = GetSecureRandomInt(1, 3);
                 decimal totalAmount = 0;
                 
                 for (int i = 0; i < itemCount; i++)
                 {
                     var product = products[i % products.Count];
-                    var quantity = rng.Next(1, 3);
+                    var quantity = GetSecureRandomInt(1, 3);
                     var unitPrice = product.Price;
                     totalAmount += unitPrice * quantity;
 
@@ -530,7 +525,7 @@ namespace Ecommerce.Infrastructure.Persistence.Seeds
                     Id = Guid.NewGuid(),
                     OrderId = order.Id,
                     Carrier = "Correios",
-                    TrackingCode = $"BR{DateTime.Now:yyyyMMdd}{rng.Next(100000, 999999)}",
+                    TrackingCode = $"BR{DateTime.Now:yyyyMMdd}{GetSecureRandomInt(100000, 999999)}",
                     ShippingCost = 15.99m,
                     EstimatedDeliveryDate = DateTime.UtcNow.AddDays(5)
                 });
@@ -564,6 +559,15 @@ namespace Ecommerce.Infrastructure.Persistence.Seeds
             Array.Copy(hash, 0, hashBytes, 32, 20);
 
             return Convert.ToBase64String(hashBytes);
+        }
+
+        // Método auxiliar para gerar números aleatórios criptograficamente seguros
+        private static int GetSecureRandomInt(int minValue, int maxValue)
+        {
+            var bytes = new byte[4];
+            RandomNumberGenerator.Fill(bytes);
+            var value = BitConverter.ToUInt32(bytes, 0);
+            return (int)(value % (maxValue - minValue)) + minValue;
         }
     }
 }

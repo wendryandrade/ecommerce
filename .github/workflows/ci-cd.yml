@@ -15,7 +15,6 @@ env:
 jobs:
   build-and-analyze:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,20 +25,29 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Create .env file
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_KEY: ${{ secrets.JWT_KEY }}
+          JWT_ISSUER: ${{ secrets.JWT_ISSUER }}
+          JWT_AUDIENCE: ${{ secrets.JWT_AUDIENCE }}
+          STRIPE_SECRETKEY: ${{ secrets.STRIPE_SECRETKEY }}
+          STRIPE_PUBLISHABLEKEY: ${{ secrets.STRIPE_PUBLISHABLEKEY }}
+          API_URL: ${{ secrets.API_URL }}
+          API_TOKEN: ${{ secrets.API_TOKEN }}
         run: |
           cat > .env << EOF
-          DB_PASS=Your_password123!
+          DB_PASS=$DB_PASSWORD
           DB_HOST=ecommerce-db
           DB_NAME=EcommerceDB
           DB_USER=sa
           DB_PORT=1433
-          JWT_KEY=${{ secrets.JWT_KEY }}
-          JWT_ISSUER=${{ secrets.JWT_ISSUER }}
-          JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
-          STRIPE_SECRETKEY=${{ secrets.STRIPE_SECRETKEY }}
-          STRIPE_PUBLISHABLEKEY=${{ secrets.STRIPE_PUBLISHABLEKEY }}
-          API_URL=${{ secrets.API_URL }}
-          API_TOKEN=${{ secrets.API_TOKEN }}
+          JWT_KEY=$JWT_KEY
+          JWT_ISSUER=$JWT_ISSUER
+          JWT_AUDIENCE=$JWT_AUDIENCE
+          STRIPE_SECRETKEY=$STRIPE_SECRETKEY
+          STRIPE_PUBLISHABLEKEY=$STRIPE_PUBLISHABLEKEY
+          API_URL=$API_URL
+          API_TOKEN=$API_TOKEN
           DEFAULT_ORIGIN_ZIPCODE=01001000
           SERVICES=1,2,18
           USE_MOCK_DATA=false
@@ -56,23 +64,12 @@ jobs:
       - name: Install SonarScanner
         run: dotnet tool install --global dotnet-sonarscanner
 
-      - name: Setup SonarCloud project
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: Verify SonarCloud Configuration
         run: |
-          # Create SonarCloud project if it doesn't exist
-          curl -X POST "https://sonarcloud.io/api/projects/create" \
-            -H "Authorization: Bearer $SONAR_TOKEN" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "project=wendryandrade_ecommerce&name=Ecommerce&organization=wendryandrade" \
-            || echo "Project may already exist or creation failed"
-          
-          # Disable automatic analysis and enable CI-based analysis
-          curl -X POST "https://sonarcloud.io/api/settings/set" \
-            -H "Authorization: Bearer $SONAR_TOKEN" \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "key=sonar.analysis.mode&value=ci&component=wendryandrade_ecommerce" \
-            || echo "Analysis mode setup may have failed"
+          echo "Current directory structure:"
+          ls -la
+          echo ""
+          echo "SonarCloud will use command line parameters for configuration"
 
       - name: Begin SonarCloud analysis
         env:
@@ -84,37 +81,41 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
         run: |
           if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
-                         # PR analysis
-             dotnet sonarscanner begin \
+            echo "Running PR analysis..."
+                         dotnet sonarscanner begin \
                /k:"wendryandrade_ecommerce" \
                /n:"Ecommerce" \
                /o:"wendryandrade" \
-              /d:sonar.host.url="https://sonarcloud.io" \
-              /d:sonar.login="$SONAR_TOKEN" \
-              /d:sonar.pullrequest.key="$PR_NUMBER" \
-              /d:sonar.pullrequest.branch="$HEAD_REF" \
-              /d:sonar.pullrequest.base="$BASE_REF" \
-              /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
-              /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
-              /d:sonar.coverage.exclusions="**/Migrations/**,**/Resources/**/DTOs/**,**/Resources/**/Requests/**,**/Resources/**/Responses/**,**/Program*.cs,**/bin/**,**/obj/**" \
-              /d:sonar.sourceEncoding="UTF-8" \
-              /d:sonar.test.inclusions="**/*Tests.cs,**/*Test.cs,**/*Spec.cs" \
-              /d:sonar.test.exclusions="**/bin/**,**/obj/**,**/TestResults/**"
+               /d:sonar.host.url="https://sonarcloud.io" \
+               /d:sonar.login="$SONAR_TOKEN" \
+               /d:sonar.pullrequest.key="$PR_NUMBER" \
+               /d:sonar.pullrequest.branch="$HEAD_REF" \
+               /d:sonar.pullrequest.base="$BASE_REF" \
+               /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
+               /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
+               /d:sonar.scm.disabled="true" \
+               /d:sonar.coverage.exclusions="**/Program.cs,**/Program.Partials.cs,**/Startup.cs,**/Migrations/**,**/TestResults/**,**/bin/**,**/obj/**" \
+               /d:sonar.coverage.aggregate="true" \
+               /d:sonar.coverage.forceZeroCoverage="false" \
+               /d:sonar.coverage.minimum="0" \
+               /d:sonar.newCodePeriod="365"
           else
-                         # Regular branch analysis
-             dotnet sonarscanner begin \
+            echo "Running full main branch analysis..."
+                         dotnet sonarscanner begin \
                /k:"wendryandrade_ecommerce" \
                /n:"Ecommerce" \
                /o:"wendryandrade" \
-              /d:sonar.host.url="https://sonarcloud.io" \
-              /d:sonar.login="$SONAR_TOKEN" \
-              /d:sonar.branch.name="main" \
-              /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
-              /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
-              /d:sonar.coverage.exclusions="**/Migrations/**,**/Resources/**/DTOs/**,**/Resources/**/Requests/**,**/Resources/**/Responses/**,**/Program*.cs,**/bin/**,**/obj/**" \
-              /d:sonar.sourceEncoding="UTF-8" \
-              /d:sonar.test.inclusions="**/*Tests.cs,**/*Test.cs,**/*Spec.cs" \
-              /d:sonar.test.exclusions="**/bin/**,**/obj/**,**/TestResults/**"
+               /d:sonar.host.url="https://sonarcloud.io" \
+               /d:sonar.login="$SONAR_TOKEN" \
+               /d:sonar.branch.name="main" \
+               /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
+               /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
+               /d:sonar.scm.disabled="true" \
+               /d:sonar.coverage.exclusions="**/Program.cs,**/Program.Partials.cs,**/Startup.cs,**/Migrations/**,**/TestResults/**,**/bin/**,**/obj/**" \
+               /d:sonar.coverage.aggregate="true" \
+               /d:sonar.coverage.forceZeroCoverage="false" \
+               /d:sonar.coverage.minimum="0" \
+               /d:sonar.newCodePeriod="365"
           fi
 
       - name: Build API
@@ -128,32 +129,26 @@ jobs:
             --logger "trx;LogFileName=test_results.trx" \
             /p:CollectCoverage=true \
             /p:CoverletOutputFormat=opencover \
-            /p:CoverletOutput=TestResults/Coverage/
+            /p:CoverletOutput=TestResults/Coverage/ \
+            /p:MergeWith=TestResults/Coverage/coverage.opencover.xml \
+            /p:CoverletOutputDirectory=TestResults/Coverage/
 
       - name: Verify Coverage Files
         run: |
           echo "Checking for coverage files..."
           find . -name "coverage.opencover.xml" -type f
-          echo "Coverage files found:"
           ls -la **/TestResults/**/coverage.opencover.xml || echo "No coverage files found"
+          echo "Coverage files content preview:"
+          for file in $(find . -name "coverage.opencover.xml" -type f); do
+            echo "=== $file ==="
+            head -20 "$file" || echo "Could not read file"
+            echo ""
+          done
 
       - name: End SonarCloud analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          REF_NAME: ${{ github.ref_name }}
-        run: |
-          # End SonarCloud analysis
-          dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN" || echo "SonarCloud analysis ended with warnings"
-          
-          # If this is the main branch, ensure it's set as the default branch
-          if [ "$REF_NAME" == "main" ]; then 
-            echo "Ensuring main branch is set as default in SonarCloud"
-                         curl -X POST "https://sonarcloud.io/api/project_branches/rename" \
-               -H "Authorization: Bearer $SONAR_TOKEN" \
-               -H "Content-Type: application/x-www-form-urlencoded" \
-               -d "project=wendryandrade_ecommerce&name=main" \
-               || echo "Default branch setup completed"
-          fi
+        run: dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v4

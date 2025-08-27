@@ -40,7 +40,7 @@ services:
       - .env
     environment:
       - ACCEPT_EULA=Y
-      - SA_PASSWORD=${DB_PASS:-Your_password123!}
+      - SA_PASSWORD=${DB_PASS}
 
   # RabbitMQ
   rabbitmq:
@@ -51,8 +51,8 @@ services:
     env_file:
       - .env
     environment:
-      - RABBITMQ_DEFAULT_USER=guest
-      - RABBITMQ_DEFAULT_PASS=guest
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME:-guest}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:-guest}
 
   # Testes de Integração e Unidade com Docker
   ecommerce-tests:
@@ -72,7 +72,7 @@ services:
       - DB_HOST=ecommerce-db
       - DB_PORT=1433
       - DB_USER=sa
-      - DB_PASS=Your_password123!
+      - DB_PASS=${DB_PASS}
  
   # Banco de dados do SonarQube (PostgreSQL)
   sonarqube-db:
@@ -80,9 +80,9 @@ services:
     env_file:
       - .env
     environment:
-      - POSTGRES_USER=sonar
-      - POSTGRES_PASSWORD=sonar
-      - POSTGRES_DB=sonar
+      - POSTGRES_USER=${SONAR_DB_USER:-sonar}
+      - POSTGRES_PASSWORD=${SONAR_DB_PASSWORD:-sonar}
+      - POSTGRES_DB=${SONAR_DB_NAME:-sonar}
     volumes:
       - sonardata:/var/lib/postgresql/data  # Persistência do banco
 
@@ -96,9 +96,9 @@ services:
     depends_on:
       - sonarqube-db
     environment:
-      - SONARQUBE_JDBC_URL=jdbc:postgresql://sonarqube-db:5432/sonar
-      - SONARQUBE_JDBC_USERNAME=sonar
-      - SONARQUBE_JDBC_PASSWORD=sonar
+      - SONARQUBE_JDBC_URL=jdbc:postgresql://sonarqube-db:5432/${SONAR_DB_NAME:-sonar}
+      - SONARQUBE_JDBC_USERNAME=${SONAR_DB_USER:-sonar}
+      - SONARQUBE_JDBC_PASSWORD=${SONAR_DB_PASSWORD:-sonar}
       - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
       - sonar.web.context=/
     volumes:
