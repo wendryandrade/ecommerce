@@ -62,8 +62,16 @@ services:
       - .env
     volumes:
       - ./:/src                       # monta o código
-      - ./TestResults:/src/TestResults # onde os resultados vão
-    command: sh scripts/run-tests.sh
+      - ./TestResults:/src/TestResults # volume consolidado de resultados
+    command: >
+      sh -lc 'set -e;
+      dotnet restore;
+      dotnet build --no-restore -c Debug;
+      mkdir -p Ecommerce.API.UnitTests/TestResults && dotnet test Ecommerce.API.UnitTests/Ecommerce.API.UnitTests.csproj --no-build -c Debug --logger "trx;LogFileName=test_results.trx" --results-directory Ecommerce.API.UnitTests/TestResults && mkdir -p /src/TestResults/ecommerce.api.unittests && cp Ecommerce.API.UnitTests/TestResults/test_results.trx /src/TestResults/ecommerce.api.unittests/test_results.trx;
+      mkdir -p Ecommerce.API.IntegrationTests/TestResults && dotnet test Ecommerce.API.IntegrationTests/Ecommerce.API.IntegrationTests.csproj --no-build -c Debug --logger "trx;LogFileName=test_results.trx" --results-directory Ecommerce.API.IntegrationTests/TestResults && mkdir -p /src/TestResults/ecommerce.api.integrationtests && cp Ecommerce.API.IntegrationTests/TestResults/test_results.trx /src/TestResults/ecommerce.api.integrationtests/test_results.trx;
+      mkdir -p Ecommerce.Application.UnitTests/TestResults && dotnet test Ecommerce.Application.UnitTests/Ecommerce.Application.UnitTests.csproj --no-build -c Debug --logger "trx;LogFileName=test_results.trx" --results-directory Ecommerce.Application.UnitTests/TestResults && mkdir -p /src/TestResults/ecommerce.application.unittests && cp Ecommerce.Application.UnitTests/TestResults/test_results.trx /src/TestResults/ecommerce.application.unittests/test_results.trx;
+      mkdir -p Ecommerce.Infrastructure.UnitTests/TestResults && dotnet test Ecommerce.Infrastructure.UnitTests/Ecommerce.Infrastructure.UnitTests.csproj --no-build -c Debug --logger "trx;LogFileName=test_results.trx" --results-directory Ecommerce.Infrastructure.UnitTests/TestResults && mkdir -p /src/TestResults/ecommerce.infrastructure.unittests && cp Ecommerce.Infrastructure.UnitTests/TestResults/test_results.trx /src/TestResults/ecommerce.infrastructure.unittests/test_results.trx;
+      mkdir -p Ecommerce.Domain.UnitTests/TestResults && dotnet test Ecommerce.Domain.UnitTests/Ecommerce.Domain.UnitTests.csproj --no-build -c Debug --logger "trx;LogFileName=test_results.trx" --results-directory Ecommerce.Domain.UnitTests/TestResults && mkdir -p /src/TestResults/ecommerce.domain.unittests && cp Ecommerce.Domain.UnitTests/TestResults/test_results.trx /src/TestResults/ecommerce.domain.unittests/test_results.trx'
     depends_on:
       - ecommerce-db
       - rabbitmq
@@ -73,38 +81,6 @@ services:
       - DB_PORT=1433
       - DB_USER=sa
       - DB_PASS=${DB_PASS}
- 
-  # Banco de dados do SonarQube (PostgreSQL)
-  sonarqube-db:
-    image: postgres:15
-    env_file:
-      - .env
-    environment:
-      - POSTGRES_USER=${SONAR_DB_USER:-sonar}
-      - POSTGRES_PASSWORD=${SONAR_DB_PASSWORD:-sonar}
-      - POSTGRES_DB=${SONAR_DB_NAME:-sonar}
-    volumes:
-      - sonardata:/var/lib/postgresql/data  # Persistência do banco
-
-  # Servidor SonarQube
-  sonarqube:
-    image: sonarqube:lts-community
-    env_file:
-      - .env
-    ports:
-      - "9000:9000"
-    depends_on:
-      - sonarqube-db
-    environment:
-      - SONARQUBE_JDBC_URL=jdbc:postgresql://sonarqube-db:5432/${SONAR_DB_NAME:-sonar}
-      - SONARQUBE_JDBC_USERNAME=${SONAR_DB_USER:-sonar}
-      - SONARQUBE_JDBC_PASSWORD=${SONAR_DB_PASSWORD:-sonar}
-      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
-      - sonar.web.context=/
-    volumes:
-      - sonarqube_data:/opt/sonarqube/data       # Dados persistentes do SonarQube
-      - sonarqube_extensions:/opt/sonarqube/extensions
-      - sonarqube_logs:/opt/sonarqube/logs
  
 volumes:
    sonardata: {}
