@@ -129,7 +129,11 @@ Caso precise consumir APIs externas com HTTPS (Opcional):
 ## 📊 Testes e Qualidade de Código
 
 - Testes **unitários e de integração** com **XUnit**  
-- Executados automaticamente no Docker  
+
+- Para rodar via Docker, execute:
+
+  `docker run --rm -v ${PWD}:/src -w /src mcr.microsoft.com/dotnet/sdk:8.0 dotnet test`
+
 - **CI/CD com GitHub Actions** → build, testes e análise no **SonarCloud**  
 
  

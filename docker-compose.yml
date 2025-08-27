@@ -53,34 +53,6 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME:-guest}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:-guest}
-
-  # Testes de Integração e Unidade com Docker
-  ecommerce-tests:
-    image: mcr.microsoft.com/dotnet/sdk:8.0
-    working_dir: /src
-    env_file:
-      - .env
-    volumes:
-      - ./:/src                       # monta o código
-      - ./TestResults:/src/TestResults # volume consolidado de resultados
-    command: >
-      sh -lc 'set -e;
-      dotnet restore;
-      dotnet build --no-restore -c Debug;
-      mkdir -p Ecommerce.API.UnitTests/TestResults && dotnet test Ecommerce.API.UnitTests/Ecommerce.API.UnitTests.csproj --no-build -c Debug --logger "trx;LogFileName=test_results.trx" --results-directory Ecommerce.API.UnitTests/TestResults && mkdir -p /src/TestResults/ecommerce.api.unittests && cp Ecommerce.API.UnitTests/TestResults/test_results.trx /src/TestResults/ecommerce.api.unittests/test_results.trx;
-      mkdir -p Ecommerce.API.IntegrationTests/TestResults && dotnet test Ecommerce.API.IntegrationTests/Ecommerce.API.IntegrationTests.csproj --no-build -c Debug --logger "trx;LogFileName=test_results.trx" --results-directory Ecommerce.API.IntegrationTests/TestResults && mkdir -p /src/TestResults/ecommerce.api.integrationtests && cp Ecommerce.API.IntegrationTests/TestResults/test_results.trx /src/TestResults/ecommerce.api.integrationtests/test_results.trx;
-      mkdir -p Ecommerce.Application.UnitTests/TestResults && dotnet test Ecommerce.Application.UnitTests/Ecommerce.Application.UnitTests.csproj --no-build -c Debug --logger "trx;LogFileName=test_results.trx" --results-directory Ecommerce.Application.UnitTests/TestResults && mkdir -p /src/TestResults/ecommerce.application.unittests && cp Ecommerce.Application.UnitTests/TestResults/test_results.trx /src/TestResults/ecommerce.application.unittests/test_results.trx;
-      mkdir -p Ecommerce.Infrastructure.UnitTests/TestResults && dotnet test Ecommerce.Infrastructure.UnitTests/Ecommerce.Infrastructure.UnitTests.csproj --no-build -c Debug --logger "trx;LogFileName=test_results.trx" --results-directory Ecommerce.Infrastructure.UnitTests/TestResults && mkdir -p /src/TestResults/ecommerce.infrastructure.unittests && cp Ecommerce.Infrastructure.UnitTests/TestResults/test_results.trx /src/TestResults/ecommerce.infrastructure.unittests/test_results.trx;
-      mkdir -p Ecommerce.Domain.UnitTests/TestResults && dotnet test Ecommerce.Domain.UnitTests/Ecommerce.Domain.UnitTests.csproj --no-build -c Debug --logger "trx;LogFileName=test_results.trx" --results-directory Ecommerce.Domain.UnitTests/TestResults && mkdir -p /src/TestResults/ecommerce.domain.unittests && cp Ecommerce.Domain.UnitTests/TestResults/test_results.trx /src/TestResults/ecommerce.domain.unittests/test_results.trx'
-    depends_on:
-      - ecommerce-db
-      - rabbitmq
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Testing
-      - DB_HOST=ecommerce-db
-      - DB_PORT=1433
-      - DB_USER=sa
-      - DB_PASS=${DB_PASS}
  
 volumes:
    sonardata: {}
