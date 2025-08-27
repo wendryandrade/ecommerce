@@ -66,11 +66,10 @@ jobs:
 
       - name: Verify SonarCloud Configuration
         run: |
-          echo "SonarCloud configuration file:"
-          cat sonar-project.properties || echo "No sonar-project.properties found"
-          echo ""
           echo "Current directory structure:"
           ls -la
+          echo ""
+          echo "SonarCloud will use command line parameters for configuration"
 
       - name: Begin SonarCloud analysis
         env:
@@ -91,7 +90,14 @@ jobs:
                /d:sonar.login="$SONAR_TOKEN" \
                /d:sonar.pullrequest.key="$PR_NUMBER" \
                /d:sonar.pullrequest.branch="$HEAD_REF" \
-               /d:sonar.pullrequest.base="$BASE_REF"
+               /d:sonar.pullrequest.base="$BASE_REF" \
+               /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
+               /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
+               /d:sonar.scm.disabled="true" \
+               /d:sonar.coverage.exclusions="**/Program.cs,**/Program.Partials.cs,**/Startup.cs,**/Migrations/**,**/TestResults/**,**/bin/**,**/obj/**" \
+               /d:sonar.coverage.aggregate="true" \
+               /d:sonar.coverage.forceZeroCoverage="false" \
+               /d:sonar.coverage.minimum="0"
           else
             echo "Running full main branch analysis..."
                          dotnet sonarscanner begin \
@@ -100,7 +106,14 @@ jobs:
                /o:"wendryandrade" \
                /d:sonar.host.url="https://sonarcloud.io" \
                /d:sonar.login="$SONAR_TOKEN" \
-               /d:sonar.branch.name="main"
+               /d:sonar.branch.name="main" \
+               /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
+               /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
+               /d:sonar.scm.disabled="true" \
+               /d:sonar.coverage.exclusions="**/Program.cs,**/Program.Partials.cs,**/Startup.cs,**/Migrations/**,**/TestResults/**,**/bin/**,**/obj/**" \
+               /d:sonar.coverage.aggregate="true" \
+               /d:sonar.coverage.forceZeroCoverage="false" \
+               /d:sonar.coverage.minimum="0"
           fi
 
       - name: Build API
