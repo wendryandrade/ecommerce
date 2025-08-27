@@ -64,6 +64,14 @@ jobs:
       - name: Install SonarScanner
         run: dotnet tool install --global dotnet-sonarscanner
 
+      - name: Verify SonarCloud Configuration
+        run: |
+          echo "SonarCloud configuration file:"
+          cat sonar-project.properties || echo "No sonar-project.properties found"
+          echo ""
+          echo "Current directory structure:"
+          ls -la
+
       - name: Begin SonarCloud analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -85,7 +93,9 @@ jobs:
               /d:sonar.pullrequest.branch="$HEAD_REF" \
               /d:sonar.pullrequest.base="$BASE_REF" \
               /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
-              /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx"
+              /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
+              /d:sonar.scm.disabled="true" \
+              /d:sonar.coverage.exclusions="**/Program.cs,**/Program.Partials.cs,**/Startup.cs,**/Migrations/**,**/TestResults/**,**/bin/**,**/obj/**"
           else
             echo "Running full main branch analysis..."
             dotnet sonarscanner begin \
@@ -96,7 +106,9 @@ jobs:
               /d:sonar.login="$SONAR_TOKEN" \
               /d:sonar.branch.name="main" \
               /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" \
-              /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx"
+              /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" \
+              /d:sonar.scm.disabled="true" \
+              /d:sonar.coverage.exclusions="**/Program.cs,**/Program.Partials.cs,**/Startup.cs,**/Migrations/**,**/TestResults/**,**/bin/**,**/obj/**"
           fi
 
       - name: Build API
@@ -110,13 +122,21 @@ jobs:
             --logger "trx;LogFileName=test_results.trx" \
             /p:CollectCoverage=true \
             /p:CoverletOutputFormat=opencover \
-            /p:CoverletOutput=TestResults/Coverage/
+            /p:CoverletOutput=TestResults/Coverage/ \
+            /p:MergeWith=TestResults/Coverage/coverage.opencover.xml \
+            /p:CoverletOutputDirectory=TestResults/Coverage/
 
       - name: Verify Coverage Files
         run: |
           echo "Checking for coverage files..."
           find . -name "coverage.opencover.xml" -type f
           ls -la **/TestResults/**/coverage.opencover.xml || echo "No coverage files found"
+          echo "Coverage files content preview:"
+          for file in $(find . -name "coverage.opencover.xml" -type f); do
+            echo "=== $file ==="
+            head -20 "$file" || echo "Could not read file"
+            echo ""
+          done
 
       - name: End SonarCloud analysis
         env:
