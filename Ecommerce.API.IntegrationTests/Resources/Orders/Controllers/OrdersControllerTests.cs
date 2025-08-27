@@ -10,8 +10,10 @@ using MassTransit.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Ecommerce.API.IntegrationTests.Resources.Orders.Controllers
 {
@@ -33,6 +35,10 @@ namespace Ecommerce.API.IntegrationTests.Resources.Orders.Controllers
             _factory.MockShippingService
                 .Setup(s => s.CalculateShippingWithDetailsFromStoreAsync(It.IsAny<string>()))
                 .ReturnsAsync((0m, 3, false, new Application.Interfaces.AddressInfo(), new Application.Interfaces.AddressInfo()));
+
+            _factory.MockShippingService
+                .Setup(s => s.GetStoreZipCode())
+                .Returns("01310-100");
 
             _factory.MockPaymentService
                 .Setup(p => p.ProcessPaymentAsync(It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<string>()))
@@ -134,6 +140,59 @@ namespace Ecommerce.API.IntegrationTests.Resources.Orders.Controllers
             {
                 await harness.Stop();
             }
+        }
+
+        [Fact]
+        public async Task Checkout_ShouldReturnBadRequest_WhenCartIsEmpty()
+        {
+            // limpa carrinho do usuário customer
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var user = await db.Users.FirstAsync(u => u.Email == "customer@test.com");
+                var carts = db.Carts.Where(c => c.UserId == user.Id);
+                db.Carts.RemoveRange(carts);
+                await db.SaveChangesAsync();
+            }
+
+            var login = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest { Email = "customer@test.com", Password = "Password123!" });
+            login.EnsureSuccessStatusCode();
+            var token = (await login.Content.ReadFromJsonAsync<LoginResponse>())!.Token;
+            _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var req = new CreateOrderRequest
+            {
+                ShippingAddress = new CreateOrderAddressRequest { Street = "S", City = "C", State = "ST", PostalCode = "01001000" }
+            };
+            var resp = await _client.PostAsJsonAsync("/api/orders/checkout", req);
+            Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+        }
+
+        [Fact]
+        public async Task CalculateShipping_ShouldReturnOk_WithMockedService()
+        {
+            var response = await _client.PostAsJsonAsync("/api/orders/calculate-shipping", new { DestinationZipCode = "20040030" });
+            response.EnsureSuccessStatusCode();
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            Assert.True(root.TryGetProperty("shippingCost", out var sc));
+            Assert.True(root.TryGetProperty("deliveryDays", out var dd));
+            Assert.True(root.TryGetProperty("isRealApi", out var ir));
+            Assert.True(root.TryGetProperty("originZipCode", out var oz));
+            Assert.True(root.TryGetProperty("destinationZipCode", out var dz));
+        }
+
+        [Fact]
+        public async Task CalculateShipping_ShouldReturnBadRequest_WhenServiceThrowsArgument()
+        {
+            // Força o mock a lançar ArgumentException
+            _factory.MockShippingService
+                .Setup(s => s.CalculateShippingWithDetailsFromStoreAsync(It.IsAny<string>()))
+                .ThrowsAsync(new ArgumentException("Invalid zip"));
+
+            var response = await _client.PostAsJsonAsync("/api/orders/calculate-shipping", new { DestinationZipCode = "invalid" });
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
     }
 }

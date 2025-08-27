@@ -15,6 +15,7 @@ using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Xunit;
 
@@ -204,6 +205,45 @@ namespace Ecommerce.API.UnitTests.Resources.Orders.Controllers
 
 			// Assert
 			Assert.IsType<BadRequestObjectResult>(result);
+		}
+
+		[Fact]
+		public async Task CreateOrder_ShouldThrowUnauthorized_WhenNoClaims()
+		{
+			// Arrange
+			var req = new CreateOrderRequest
+			{
+				ShippingAddress = new CreateOrderAddressRequest { Street = "S", City = "C", State = "ST", PostalCode = "123" },
+				PaymentDetails = new CreateOrderPaymentRequest { PaymentMethod = PaymentMethod.CreditCard }
+			};
+
+			// Reset HttpContext without user and add a fake empty cart repo to trigger path
+			var context = new DefaultHttpContext();
+			_controller.ControllerContext = new ControllerContext { HttpContext = context };
+			var services = new ServiceCollection();
+			services.AddSingleton<ICartRepository>(new FakeEmptyCartRepository());
+			_controller.ControllerContext.HttpContext.RequestServices = services.BuildServiceProvider();
+
+			// Act & Assert
+			await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _controller.CreateOrder(req));
+		}
+
+		private class FakeEmptyCartRepository : ICartRepository
+		{
+			public Task AddAsync(Ecommerce.Domain.Entities.Cart cart) => Task.CompletedTask;
+			public Task DeleteAsync(Guid userId, Guid productId) => Task.CompletedTask;
+			public Task<Ecommerce.Domain.Entities.Cart?> GetByUserIdAsync(Guid userId) => Task.FromResult<Ecommerce.Domain.Entities.Cart?>(new Ecommerce.Domain.Entities.Cart { UserId = userId });
+			public Task UpdateAsync(Ecommerce.Domain.Entities.Cart cart) => Task.CompletedTask;
+		}
+
+		[Fact]
+		public async Task CalculateShipping_ShouldReturn500_OnUnhandledError()
+		{
+			_mockShippingService.Setup(s => s.CalculateShippingWithDetailsFromStoreAsync(It.IsAny<string>()))
+				.ThrowsAsync(new Exception("unexpected"));
+			var res = await _controller.CalculateShipping(new CalculateShippingRequest { DestinationZipCode = "01001000" });
+			var obj = Assert.IsType<ObjectResult>(res);
+			Assert.Equal(StatusCodes.Status500InternalServerError, obj.StatusCode);
 		}
 	}
 }
