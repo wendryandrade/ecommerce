@@ -97,7 +97,8 @@ jobs:
                /d:sonar.coverage.exclusions="**/Program.cs,**/Program.Partials.cs,**/Startup.cs,**/Migrations/**,**/TestResults/**,**/bin/**,**/obj/**" \
                /d:sonar.coverage.aggregate="true" \
                /d:sonar.coverage.forceZeroCoverage="false" \
-               /d:sonar.coverage.minimum="0"
+               /d:sonar.coverage.minimum="0" \
+               /d:sonar.newCodePeriod="365"
           else
             echo "Running full main branch analysis..."
                          dotnet sonarscanner begin \
@@ -113,7 +114,8 @@ jobs:
                /d:sonar.coverage.exclusions="**/Program.cs,**/Program.Partials.cs,**/Startup.cs,**/Migrations/**,**/TestResults/**,**/bin/**,**/obj/**" \
                /d:sonar.coverage.aggregate="true" \
                /d:sonar.coverage.forceZeroCoverage="false" \
-               /d:sonar.coverage.minimum="0"
+               /d:sonar.coverage.minimum="0" \
+               /d:sonar.newCodePeriod="365"
           fi
 
       - name: Build API
